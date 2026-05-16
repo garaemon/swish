@@ -1,0 +1,25 @@
+{
+  "name": "@swish/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "swish": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@swish/shared": "workspace:*",
+    "commander": "^14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsup": "^8.5.1",
+    "typescript": "^5",
+    "vitest": "^4.1.6"
+  }
+}

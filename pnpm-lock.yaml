@@ -87,6 +87,28 @@ importers:
         specifier: ^4.1.6
         version: 4.1.6(@types/node@20.19.41)(@vitest/ui@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@20.19.41)(esbuild@0.27.7)(jiti@2.7.0))
 
+  packages/cli:
+    dependencies:
+      '@swish/shared':
+        specifier: workspace:*
+        version: link:../shared
+      commander:
+        specifier: ^14.0.1
+        version: 14.0.3
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.41
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(typescript@5.9.3)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.6
+        version: 4.1.6(@types/node@20.19.41)(@vitest/ui@4.1.6)(jsdom@29.1.1)(vite@8.0.13(@types/node@20.19.41)(esbuild@0.27.7)(jiti@2.7.0))
+
   packages/shared: {}
 
 packages:
@@ -1484,6 +1506,10 @@ packages:
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
+
+  commander@14.0.3:
+    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
+    engines: {node: '>=20'}
 
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
@@ -4199,6 +4225,8 @@ snapshots:
       color-name: 1.1.4
 
   color-name@1.1.4: {}
+
+  commander@14.0.3: {}
 
   commander@4.1.1: {}
 
