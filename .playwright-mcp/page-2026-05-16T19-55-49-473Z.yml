@@ -1,0 +1,14 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e17] [cursor=pointer]:
+    - img [ref=e18]
+  - alert [ref=e21]: Inbox — Swish
+  - main [ref=e22]:
+    - generic [ref=e23]:
+      - generic [ref=e24]:
+        - heading "Inbox" [level=1] [ref=e25]
+        - paragraph [ref=e26]: 0 unread items
+      - generic [ref=e27]:
+        - link "Settings" [ref=e28] [cursor=pointer]:
+          - /url: /settings
+        - button "+ Add URL" [ref=e29]
+    - paragraph [ref=e30]: Inbox zero. Add a URL or hit the bookmarklet to save something.

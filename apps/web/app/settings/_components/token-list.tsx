@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { buildBookmarklet } from '@swish/shared/bookmarklet'
+import { BookmarkletLink } from './bookmarklet-link'
 
 export type TokenRow = {
   id: string
@@ -135,15 +135,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
             Drag this link to your bookmarks bar to save pages from any browser:
           </p>
           <p className="mt-1">
-            {/* The anchor href is a javascript: URL. Browsers will only run it
-                when dragged to the bookmarks bar; clicking is also safe. */}
-            <a
-              href={buildBookmarklet({ apiUrl, pat: justIssued.token })}
-              className="inline-block rounded border border-amber-500 px-3 py-1 text-sm text-amber-800 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
-              draggable
-            >
-              Save to Swish
-            </a>
+            <BookmarkletLink apiUrl={apiUrl} pat={justIssued.token} />
           </p>
         </div>
       ) : null}

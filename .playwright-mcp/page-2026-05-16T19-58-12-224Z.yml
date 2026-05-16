@@ -1,0 +1,75 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Settings" [level=1] [ref=e4]
+      - paragraph [ref=e5]: Signed in as demo@swish.test
+    - generic [ref=e6]:
+      - heading "AI" [level=2] [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]:
+          - text: Provider
+          - textbox "Provider" [ref=e10]: gemini
+        - generic [ref=e11]:
+          - text: Model
+          - textbox "Model" [ref=e12]: gemini-3.1-flash-light
+        - generic [ref=e13]:
+          - text: Summary language
+          - textbox "Summary language" [ref=e14]: Japanese
+        - generic [ref=e15]:
+          - text: Custom prompt (optional)
+          - textbox "Custom prompt (optional)" [ref=e16]
+        - generic [ref=e17]:
+          - text: API key
+          - textbox "API key" [ref=e18]:
+            - /placeholder: paste your Gemini API key
+        - button "Save" [ref=e19]
+    - generic [ref=e20]:
+      - heading "Personal access tokens" [level=2] [ref=e21]
+      - paragraph [ref=e22]: Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]:
+            - text: Token name
+            - textbox "Token name" [ref=e26]:
+              - /placeholder: e.g. iOS Shortcuts
+          - generic [ref=e27]:
+            - text: Expires (days)
+            - spinbutton "Expires (days)" [ref=e28]: "180"
+          - button "Issue token" [ref=e29]
+        - generic [ref=e56]:
+          - paragraph [ref=e57]:
+            - text: New token for
+            - code [ref=e58]: demo-bookmarklet-v2
+            - text: ":"
+          - generic [ref=e59]: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjMDdhNmE5YS1iNDczLTQ0Y2EtOGI0OC02M2RjNDZmZDZiMTciLCJqdGkiOiIwZGEwZjA2NC1lY2RlLTRhMTEtYWYxOS1jOGIyMGIyZjc2NDAiLCJpc3MiOiJzd2lzaCIsImlhdCI6MTc3ODk2MTQ5MCwiZXhwIjoxNzk0NTEzNDkwfQ.cKr62MzySpSdWDOXeu37nd9_FD5XJCEAE9yCdhreA0U
+          - paragraph [ref=e60]: Copy now — this is the only time we show it. Expires 11/12/2026, 11:58:10 AM.
+          - paragraph [ref=e61]: "Drag this link to your bookmarks bar to save pages from any browser:"
+          - paragraph [ref=e62]:
+            - link "Save to Swish" [ref=e63] [cursor=pointer]:
+              - /url: javascript:(function()%7B%20fetch('http%3A%2F%2Flocalhost%3A3000%2Fapi%2Fbookmarks'%2C%20%7B%20method%3A%20'POST'%2C%20mode%3A%20'cors'%2C%20headers%3A%20%7B%20'Content-Type'%3A%20'application%2Fjson'%2C%20'Authorization'%3A%20'Bearer%20eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjMDdhNmE5YS1iNDczLTQ0Y2EtOGI0OC02M2RjNDZmZDZiMTciLCJqdGkiOiIwZGEwZjA2NC1lY2RlLTRhMTEtYWYxOS1jOGIyMGIyZjc2NDAiLCJpc3MiOiJzd2lzaCIsImlhdCI6MTc3ODk2MTQ5MCwiZXhwIjoxNzk0NTEzNDkwfQ.cKr62MzySpSdWDOXeu37nd9_FD5XJCEAE9yCdhreA0U'%20%7D%2C%20body%3A%20JSON.stringify(%7B%20url%3A%20location.href%2C%20title%3A%20document.title%20%7D)%20%7D).then(function(r)%7B%20if%20(r.ok)%20%7B%20var%20box%20%3D%20document.createElement('div')%3B%20box.style.cssText%20%3D%20'position%3Afixed%3Bright%3A16px%3Bbottom%3A16px%3Bz-index%3A2147483647%3Bbackground%3A%23111%3Bcolor%3A%23fff%3Bpadding%3A8px%2012px%3Bfont%3A14px%20sans-serif%3Bborder-radius%3A6px%3Bbox-shadow%3A0%204px%2012px%20rgba(0%2C0%2C0%2C0.2)'%3B%20box.textContent%20%3D%20'Saved%20to%20Swish'%3B%20document.body.appendChild(box)%3B%20setTimeout(function()%7B%20box.remove()%3B%20%7D%2C%201800)%3B%20%7D%20else%20%7B%20alert('Swish%20save%20failed%3A%20'%20%2B%20r.status)%3B%20%7D%20%7D).catch(function(e)%7B%20alert('Swish%3A%20'%20%2B%20e.message)%3B%20%7D)%3B%20%7D)()%3B
+        - table [ref=e30]:
+          - rowgroup [ref=e31]:
+            - row "Name Created Expires Last used" [ref=e32]:
+              - columnheader "Name" [ref=e33]
+              - columnheader "Created" [ref=e34]
+              - columnheader "Expires" [ref=e35]
+              - columnheader "Last used" [ref=e36]
+              - columnheader [ref=e37]
+          - rowgroup [ref=e38]:
+            - row "demo-bookmarklet-v2 5/16/2026, 12:58:10 PM 11/12/2026, 11:58:10 AM — Revoke" [ref=e64]:
+              - cell "demo-bookmarklet-v2" [ref=e65]
+              - cell "5/16/2026, 12:58:10 PM" [ref=e66]
+              - cell "11/12/2026, 11:58:10 AM" [ref=e67]
+              - cell "—" [ref=e68]
+              - cell "Revoke" [ref=e69]:
+                - button "Revoke" [ref=e70]
+            - row "demo-bookmarklet 5/16/2026, 12:56:27 PM 11/12/2026, 11:56:27 AM — Revoke" [ref=e39]:
+              - cell "demo-bookmarklet" [ref=e40]
+              - cell "5/16/2026, 12:56:27 PM" [ref=e41]
+              - cell "11/12/2026, 11:56:27 AM" [ref=e42]
+              - cell "—" [ref=e43]
+              - cell "Revoke" [ref=e44]:
+                - button "Revoke" [ref=e45]
+  - button "Open Next.js Dev Tools" [ref=e51] [cursor=pointer]:
+    - img [ref=e52]
+  - alert [ref=e55]

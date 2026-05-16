@@ -1,0 +1,68 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e17] [cursor=pointer]:
+    - img [ref=e18]
+  - alert [ref=e21]: Settings — Swish
+  - main [ref=e31]:
+    - generic [ref=e32]:
+      - heading "Settings" [level=1] [ref=e33]
+      - paragraph [ref=e34]: Signed in as demo@swish.test
+    - generic [ref=e35]:
+      - heading "AI" [level=2] [ref=e36]
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - text: Provider
+          - textbox "Provider" [ref=e39]: gemini
+        - generic [ref=e40]:
+          - text: Model
+          - textbox "Model" [ref=e41]: gemini-3.1-flash-light
+        - generic [ref=e42]:
+          - text: Summary language
+          - textbox "Summary language" [ref=e43]: Japanese
+        - generic [ref=e44]:
+          - text: Custom prompt (optional)
+          - textbox "Custom prompt (optional)" [ref=e45]
+        - generic [ref=e46]:
+          - text: API key
+          - textbox "API key" [ref=e47]:
+            - /placeholder: paste your Gemini API key
+        - button "Save" [ref=e48]
+    - generic [ref=e49]:
+      - heading "Personal access tokens" [level=2] [ref=e50]
+      - paragraph [ref=e51]: Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - text: Token name
+            - textbox "Token name" [ref=e55]:
+              - /placeholder: e.g. iOS Shortcuts
+          - generic [ref=e56]:
+            - text: Expires (days)
+            - spinbutton "Expires (days)" [ref=e57]: "180"
+          - button "Issue token" [ref=e58]
+        - generic [ref=e70]:
+          - paragraph [ref=e71]:
+            - text: New token for
+            - code [ref=e72]: demo-bookmarklet
+            - text: ":"
+          - generic [ref=e73]: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjMDdhNmE5YS1iNDczLTQ0Y2EtOGI0OC02M2RjNDZmZDZiMTciLCJqdGkiOiI5MGRmMWQ2Zi0zMzQyLTQyYzQtOWE0My1hZmI0YTIzNmU3MDQiLCJpc3MiOiJzd2lzaCIsImlhdCI6MTc3ODk2MTM4NywiZXhwIjoxNzk0NTEzMzg3fQ.fGIE1crOs4Ptk1cfB7J8Z1BblLbv_TncwDCF_bSA-og
+          - paragraph [ref=e74]: Copy now — this is the only time we show it. Expires 11/12/2026, 11:56:27 AM.
+          - paragraph [ref=e75]: "Drag this link to your bookmarks bar to save pages from any browser:"
+          - paragraph [ref=e76]:
+            - link "Save to Swish" [ref=e77] [cursor=pointer]:
+              - /url: "javascript:throw new Error('React has blocked a javascript: URL as a security precaution.')"
+        - table [ref=e59]:
+          - rowgroup [ref=e60]:
+            - row "Name Created Expires Last used" [ref=e61]:
+              - columnheader "Name" [ref=e62]
+              - columnheader "Created" [ref=e63]
+              - columnheader "Expires" [ref=e64]
+              - columnheader "Last used" [ref=e65]
+              - columnheader [ref=e66]
+          - rowgroup [ref=e67]:
+            - row "demo-bookmarklet 5/16/2026, 12:56:27 PM 11/12/2026, 11:56:27 AM — Revoke" [ref=e78]:
+              - cell "demo-bookmarklet" [ref=e79]
+              - cell "5/16/2026, 12:56:27 PM" [ref=e80]
+              - cell "11/12/2026, 11:56:27 AM" [ref=e81]
+              - cell "—" [ref=e82]
+              - cell "Revoke" [ref=e83]:
+                - button "Revoke" [ref=e84]

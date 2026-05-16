@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e16] [cursor=pointer]:
+    - img [ref=e17]
+  - alert [ref=e20]: Reading view — Swish
+  - main [ref=e38]:
+    - generic [ref=e39]:
+      - link "← Inbox" [ref=e40] [cursor=pointer]:
+        - /url: /dashboard
+      - heading "Example Domain" [level=1] [ref=e41]
+      - link "https://example.com/?demo-browser-add" [ref=e42] [cursor=pointer]:
+        - /url: https://example.com/?demo-browser-add
+    - paragraph [ref=e43]: "Pipeline failed: No API key configured for user — set one in /settings"
+    - generic [ref=e44]:
+      - heading "Tags" [level=2] [ref=e45]
+      - generic [ref=e46]:
+        - generic [ref=e48]: No tags yet.
+        - generic [ref=e49]:
+          - textbox "Add tag" [ref=e50]
+          - button "Add" [ref=e51]
+    - generic [ref=e52]:
+      - heading "Article" [level=2] [ref=e53]
+      - generic [ref=e54]: This domain is for use in documentation examples without needing permission. Avoid use in operations.Learn more
