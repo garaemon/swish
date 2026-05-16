@@ -5,7 +5,6 @@ import * as itemsRetry from '@/app/api/items/[id]/retry/route'
 import * as itemsRead from '@/app/api/items/[id]/read/route'
 import * as tokens from '@/app/api/tokens/route'
 import * as tokenDelete from '@/app/api/tokens/[id]/route'
-import * as settings from '@/app/api/settings/route'
 
 type ResponseFactory = () => Response | Promise<Response>
 
@@ -18,8 +17,6 @@ const stubs: Array<[string, ResponseFactory]> = [
   ['GET /api/tokens', () => tokens.GET()],
   ['POST /api/tokens', () => tokens.POST()],
   ['DELETE /api/tokens/[id]', () => tokenDelete.DELETE()],
-  ['GET /api/settings', () => settings.GET()],
-  ['PUT /api/settings', () => settings.PUT()],
 ]
 
 describe('stub route handlers', () => {
