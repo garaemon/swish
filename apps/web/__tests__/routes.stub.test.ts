@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import * as bookmarks from '@/app/api/bookmarks/route'
 import * as items from '@/app/api/items/route'
 import * as itemsRetry from '@/app/api/items/[id]/retry/route'
 import * as itemsRead from '@/app/api/items/[id]/read/route'
+
 type ResponseFactory = () => Response | Promise<Response>
 
 const stubs: Array<[string, ResponseFactory]> = [
-  ['POST /api/bookmarks', () => bookmarks.POST()],
-  ['OPTIONS /api/bookmarks', () => bookmarks.OPTIONS()],
   ['GET /api/items', () => items.GET()],
   ['POST /api/items/[id]/retry', () => itemsRetry.POST()],
   ['PUT /api/items/[id]/read', () => itemsRead.PUT()],
