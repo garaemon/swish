@@ -1,6 +1,6 @@
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { issuePat } from '@/lib/auth/pat'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseForUser } from '@/lib/supabase/for-request'
 import { TokenCreateSchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
@@ -16,7 +16,7 @@ export type TokenSummary = {
 export async function GET(request: Request): Promise<Response> {
   try {
     const user = await requireUser(request)
-    const supabase = await createSupabaseServerClient()
+    const supabase = await getSupabaseForUser(user)
     const { data, error } = await supabase
       .from('personal_access_tokens')
       .select('id, name, created_at, expires_at, last_used_at')
@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400 },
       )
     }
-    const supabase = await createSupabaseServerClient()
+    const supabase = await getSupabaseForUser(user)
     const issued = await issuePat({
       userId: user.userId,
       name: parsed.data.name,

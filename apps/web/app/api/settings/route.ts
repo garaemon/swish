@@ -1,6 +1,6 @@
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { encryptString } from '@/lib/crypto/aes'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseForUser } from '@/lib/supabase/for-request'
 import { SettingsUpdateSchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
@@ -16,7 +16,7 @@ export type SettingsResponse = {
 export async function GET(request: Request): Promise<Response> {
   try {
     const user = await requireUser(request)
-    const supabase = await createSupabaseServerClient()
+    const supabase = await getSupabaseForUser(user)
     const { data, error } = await supabase
       .from('user_settings')
       .select('ai_provider, ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
@@ -68,7 +68,7 @@ export async function PUT(request: Request): Promise<Response> {
     if (Object.keys(update).length === 0) {
       return Response.json({ ok: true, updated: 0 })
     }
-    const supabase = await createSupabaseServerClient()
+    const supabase = await getSupabaseForUser(user)
     const { error } = await supabase
       .from('user_settings')
       .update(update)

@@ -1,6 +1,6 @@
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { revokePat } from '@/lib/auth/pat'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getSupabaseForUser } from '@/lib/supabase/for-request'
 
 export const runtime = 'nodejs'
 
@@ -11,7 +11,7 @@ export async function DELETE(request: Request, context: Context): Promise<Respon
     const user = await requireUser(request)
     const { id } = await context.params
     if (!id) return Response.json({ error: 'missing id' }, { status: 400 })
-    const supabase = await createSupabaseServerClient()
+    const supabase = await getSupabaseForUser(user)
     await revokePat(id, user.userId, supabase)
     return Response.json({ ok: true })
   } catch (err) {
