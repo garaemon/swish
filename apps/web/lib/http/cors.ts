@@ -1,14 +1,24 @@
+const ALLOWED_HEADERS = 'Authorization, Content-Type'
+const ALLOWED_METHODS = 'GET, POST, PUT, DELETE, OPTIONS'
+
 /**
- * Returns CORS headers that echo the request Origin for the bookmark API,
- * which is hit from arbitrary origins via the bookmarklet.
+ * Builds CORS response headers that echo the request Origin.
+ * Authorization-based endpoints (the bookmarklet) do not use cookies,
+ * so allow-credentials is intentionally omitted.
  */
-export function corsHeaders(_origin: string | null): Headers {
-  throw new Error('not implemented')
+export function corsHeaders(origin: string | null): Headers {
+  const headers = new Headers()
+  headers.set('Access-Control-Allow-Origin', origin ?? '*')
+  headers.set('Access-Control-Allow-Methods', ALLOWED_METHODS)
+  headers.set('Access-Control-Allow-Headers', ALLOWED_HEADERS)
+  headers.set('Vary', 'Origin')
+  return headers
 }
 
 /**
- * Handles an OPTIONS preflight request with the appropriate CORS headers.
+ * Returns a 204 preflight response with CORS headers for the request Origin.
  */
-export function handleOptions(_req: Request): Response {
-  throw new Error('not implemented')
+export function handleOptions(req: Request): Response {
+  const headers = corsHeaders(req.headers.get('origin'))
+  return new Response(null, { status: 204, headers })
 }
