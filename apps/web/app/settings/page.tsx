@@ -79,7 +79,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
         <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
           Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
         </p>
-        <TokenList initial={tokens} />
+        <TokenList initial={tokens} apiUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'} />
       </section>
     </main>
   )

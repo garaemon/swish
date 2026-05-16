@@ -22,6 +22,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.105.4
         version: 2.105.4
+      '@swish/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       jose:
         specifier: ^6.2.3
         version: 6.2.3
