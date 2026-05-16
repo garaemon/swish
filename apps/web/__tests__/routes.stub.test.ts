@@ -3,9 +3,6 @@ import * as bookmarks from '@/app/api/bookmarks/route'
 import * as items from '@/app/api/items/route'
 import * as itemsRetry from '@/app/api/items/[id]/retry/route'
 import * as itemsRead from '@/app/api/items/[id]/read/route'
-import * as tokens from '@/app/api/tokens/route'
-import * as tokenDelete from '@/app/api/tokens/[id]/route'
-
 type ResponseFactory = () => Response | Promise<Response>
 
 const stubs: Array<[string, ResponseFactory]> = [
@@ -14,9 +11,6 @@ const stubs: Array<[string, ResponseFactory]> = [
   ['GET /api/items', () => items.GET()],
   ['POST /api/items/[id]/retry', () => itemsRetry.POST()],
   ['PUT /api/items/[id]/read', () => itemsRead.PUT()],
-  ['GET /api/tokens', () => tokens.GET()],
-  ['POST /api/tokens', () => tokens.POST()],
-  ['DELETE /api/tokens/[id]', () => tokenDelete.DELETE()],
 ]
 
 describe('stub route handlers', () => {
