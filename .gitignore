@@ -41,6 +41,9 @@ supabase/.branches/
 supabase/.temp/
 supabase/seed_local.sql
 
+# Playwright MCP scratch
+.playwright-mcp/
+
 # Next.js
 .next/
 next-env.d.ts
