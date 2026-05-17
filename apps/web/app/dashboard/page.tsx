@@ -26,6 +26,8 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     .eq('user_id', user.id)
     .eq('is_read', false)
     .order('created_at', { ascending: false })
+    // TODO: cursor pagination once the inbox grows past 200 rows. Today
+    // the dashboard silently drops anything beyond this limit.
     .limit(200)
 
   if (error) {
@@ -41,10 +43,12 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
     url: row.url,
     title: row.title,
     summaryShort: row.summary_short,
+    // DB CHECK guarantees a valid status; the generated type is nullable
+    // because the column has a default.
     processStatus: row.process_status ?? 'pending',
     errorMessage: row.error_message,
     sourceType: row.source_type,
-    createdAt: row.created_at ?? '',
+    createdAt: row.created_at as string,
   }))
 
   return (

@@ -8,9 +8,9 @@ const STYLES: Record<string, string> = {
 }
 
 export function StatusBadge({ status }: Props): React.JSX.Element {
-  const cls = STYLES[status] ?? STYLES.pending
+  const badgeClassName = STYLES[status] ?? STYLES.pending
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${badgeClassName}`}>
       {status}
     </span>
   )

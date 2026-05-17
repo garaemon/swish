@@ -18,7 +18,7 @@ export type InboxItem = {
 
 type Props = { item: InboxItem }
 
-function host(url: string): string {
+function extractHost(url: string): string {
   try {
     return new URL(url).host
   } catch {
@@ -34,7 +34,7 @@ export function ItemRow({ item }: Props): React.JSX.Element {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-xs text-zinc-500">
           <StatusBadge status={item.processStatus} />
-          <span>{host(item.url)}</span>
+          <span>{extractHost(item.url)}</span>
         </div>
         <Link
           href={`/items/${item.id}`}

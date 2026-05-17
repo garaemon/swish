@@ -1,6 +1,9 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+# pnpm 11 refuses to run install when any dependency carries a build script
+# unless it is explicitly allow-listed here. esbuild + sharp + unrs-resolver
+# all ship native binaries and need to run their installer scripts.
 allowBuilds:
   esbuild: true
   sharp: true

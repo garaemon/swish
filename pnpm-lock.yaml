@@ -80,9 +80,6 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.0
-      tsup:
-        specifier: ^8.5.1
-        version: 8.5.1(jiti@2.7.0)(postcss@8.5.14)(typescript@5.9.3)
       typescript:
         specifier: ^5
         version: 5.9.3

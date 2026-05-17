@@ -27,6 +27,11 @@ export async function readConfig(): Promise<SwishCliConfig | null> {
   }
 }
 
+// TODO: keychain integration on macOS / Linux Secret Service / Windows
+// Credential Manager. The PAT is currently stored in plaintext under
+// $SWISH_CONFIG_DIR (default ~/.config/swish/config.json) with mode 0600.
+// That is conventional (gh, npm, etc. do the same) but the file can leak
+// via shared home directories on NFS or cloud-backup tools.
 export async function writeConfig(value: SwishCliConfig): Promise<string> {
   const dir = configDir()
   await fs.mkdir(dir, { recursive: true, mode: 0o700 })

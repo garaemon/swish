@@ -60,7 +60,7 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
         Provider
         <input
           value={provider}
-          onChange={(e) => setProvider(e.target.value)}
+          onChange={(event) => setProvider(event.target.value)}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
         />
       </label>
@@ -68,7 +68,7 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
         Model
         <input
           value={model}
-          onChange={(e) => setModel(e.target.value)}
+          onChange={(event) => setModel(event.target.value)}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
         />
       </label>
@@ -76,7 +76,7 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
         Summary language
         <input
           value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          onChange={(event) => setLanguage(event.target.value)}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
         />
       </label>
@@ -84,7 +84,7 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
         Custom prompt (optional)
         <textarea
           value={customPrompt}
-          onChange={(e) => setCustomPrompt(e.target.value)}
+          onChange={(event) => setCustomPrompt(event.target.value)}
           rows={3}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
         />
@@ -94,7 +94,7 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
         <input
           type="password"
           value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
+          onChange={(event) => setApiKey(event.target.value)}
           placeholder={hasApiKey ? 'leave blank to keep the existing key' : 'paste your Gemini API key'}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
         />

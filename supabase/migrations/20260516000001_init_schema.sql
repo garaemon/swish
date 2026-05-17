@@ -6,6 +6,10 @@ create table public.profiles (
   created_at timestamp with time zone default now()
 );
 
+-- Defaults below must stay in sync with packages/shared/src/defaults.ts:
+--   DEFAULT_AI_PROVIDER, DEFAULT_AI_MODEL, DEFAULT_AI_SUMMARY_LANGUAGE.
+-- SQL cannot import the TS constants, so changing one place requires
+-- writing a new migration to update the column default to match.
 create table public.user_settings (
   user_id uuid references public.profiles(id) on delete cascade primary key,
   ai_provider text default 'gemini',

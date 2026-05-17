@@ -17,9 +17,9 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  // Override default ignores of eslint-config-next.
+  // Re-declare the eslint-config-next defaults so eslint --print-config picks
+  // them up reliably; adding new ignores here keeps everything in one place.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",

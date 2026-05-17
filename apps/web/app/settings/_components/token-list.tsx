@@ -22,8 +22,8 @@ type IssuedJwt = {
 
 function formatDate(value: string | null): string {
   if (!value) return '—'
-  const d = new Date(value)
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString()
+  const parsedDate = new Date(value)
+  return Number.isNaN(parsedDate.getTime()) ? value : parsedDate.toLocaleString()
 }
 
 export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
@@ -79,7 +79,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
       setError(`Failed to revoke: ${response.status}`)
       return
     }
-    setTokens(tokens.filter((t) => t.id !== id))
+    setTokens(tokens.filter((token) => token.id !== id))
   }
 
   return (
@@ -93,7 +93,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
           <input
             required
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) => setName(event.target.value)}
             placeholder="e.g. iOS Shortcuts"
             className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
           />
@@ -105,7 +105,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
             min={1}
             max={1825}
             value={expiresInDays}
-            onChange={(e) => setExpiresInDays(Number(e.target.value))}
+            onChange={(event) => setExpiresInDays(Number(event.target.value))}
             className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
           />
         </label>
