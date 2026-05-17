@@ -4,6 +4,9 @@ export type PromptInput = {
   customPrompt: string | null
 }
 
+// Empirically safe under gemini-3.1-flash-light's input-token budget plus
+// the system prompt overhead. Tune downward if Gemini starts returning 4xx
+// for oversized inputs.
 const MAX_CONTENT_CHARS = 24_000
 
 const SYSTEM_INSTRUCTION = `You are Swish, a summarization assistant for personal reading.

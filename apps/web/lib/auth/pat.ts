@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getServerEnv } from '@/lib/env'
 
 const JWT_ALG = 'HS256'
 const JWT_ISSUER = 'swish'
@@ -25,16 +26,18 @@ export type IssuePatResult = {
 }
 
 function loadJwtSecret(): Uint8Array {
-  const raw = process.env.JWT_SECRET
-  if (!raw || raw.length < 32) {
-    throw new Error('JWT_SECRET is missing or shorter than 32 characters')
-  }
-  return new TextEncoder().encode(raw)
+  return new TextEncoder().encode(getServerEnv().JWT_SECRET)
 }
 
 /**
  * Issues a PAT bound to a fresh row in personal_access_tokens. The raw JWT
  * is returned exactly once; only the row id (= jti) is persisted.
+ *
+ * TODO: if SignJWT throws after the insert, the row stays in
+ * personal_access_tokens without ever being handed to the caller (orphan).
+ * Acceptable for a PoC because the failure surface is tiny (loadJwtSecret
+ * is already validated). To eliminate it cleanly we would generate the
+ * jti client-side, sign first, then insert.
  */
 export async function issuePat(input: IssuePatInput): Promise<IssuePatResult> {
   const expiresAt = new Date(
@@ -98,10 +101,14 @@ export async function verifyPat(
   if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
     throw new Error('PAT is expired')
   }
-  await supabase
+  const { error: touchError } = await supabase
     .from('personal_access_tokens')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', payload.jti)
+  if (touchError) {
+    // The PAT is still valid for this request; surface the lost audit trail.
+    console.warn('failed to update last_used_at for pat', payload.jti, touchError)
+  }
   return { userId: data.user_id, tokenId: data.id }
 }
 

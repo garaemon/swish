@@ -1,17 +1,15 @@
+/**
+ * GET  /api/tokens         List the auth user's personal access tokens.
+ * POST /api/tokens         Issue a new PAT; the raw JWT is returned exactly once.
+ * Both endpoints accept cookie or `Authorization: Bearer <PAT>`.
+ */
+import type { TokenSummaryDto } from '@swish/shared'
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { issuePat } from '@/lib/auth/pat'
 import { getSupabaseForUser } from '@/lib/supabase/for-request'
 import { TokenCreateSchema } from '@/lib/validation/schemas'
 
 export const runtime = 'nodejs'
-
-export type TokenSummary = {
-  id: string
-  name: string
-  createdAt: string
-  expiresAt: string | null
-  lastUsedAt: string | null
-}
 
 export async function GET(request: Request): Promise<Response> {
   try {
@@ -23,10 +21,12 @@ export async function GET(request: Request): Promise<Response> {
       .eq('user_id', user.userId)
       .order('created_at', { ascending: false })
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    const tokens: TokenSummary[] = (data ?? []).map((row) => ({
+    const tokens: TokenSummaryDto[] = (data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
-      createdAt: row.created_at ?? '',
+      // DB default `now()` guarantees created_at; the generated type is
+      // nullable. See identical rationale in /api/items.
+      createdAt: row.created_at as string,
       expiresAt: row.expires_at,
       lastUsedAt: row.last_used_at,
     }))

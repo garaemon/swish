@@ -20,21 +20,26 @@ export default async function ItemPage({ params }: Params): Promise<React.JSX.El
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: item } = await supabase
-    .from('items')
-    .select(
-      'id, url, title, summary_long, content_text, process_status, error_message, created_at',
-    )
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // Both queries are gated on `id` (the URL param). They do not share data,
+  // so issue them in parallel to halve the reading-view roundtrip cost.
+  const [itemResult, itemTagsResult] = await Promise.all([
+    supabase
+      .from('items')
+      .select(
+        'id, url, title, summary_long, content_text, process_status, error_message, created_at',
+      )
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('item_tags')
+      .select('tag:tags(id, name)')
+      .eq('item_id', id),
+  ])
 
+  const item = itemResult.data
   if (!item) notFound()
-
-  const { data: itemTags } = await supabase
-    .from('item_tags')
-    .select('tag:tags(id, name)')
-    .eq('item_id', item.id)
+  const itemTags = itemTagsResult.data
 
   const tags: TagBadge[] = (itemTags ?? [])
     .map((row) => row.tag)

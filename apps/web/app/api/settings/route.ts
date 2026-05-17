@@ -1,3 +1,17 @@
+/**
+ * GET /api/settings   Returns the auth user's AI settings + hasApiKey
+ *                     boolean. The encrypted_api_key is never returned;
+ *                     only its presence is signalled.
+ * PUT /api/settings   Partial update. apiKey is AES-256-GCM encrypted
+ *                     before being stored. Uses upsert so it works even
+ *                     if handle_new_user did not seed the row.
+ * Authenticated via cookie or `Authorization: Bearer <PAT>`.
+ */
+import {
+  DEFAULT_AI_MODEL,
+  DEFAULT_AI_PROVIDER,
+  DEFAULT_AI_SUMMARY_LANGUAGE,
+} from '@swish/shared/defaults'
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { encryptString } from '@/lib/crypto/aes'
 import { getSupabaseForUser } from '@/lib/supabase/for-request'
@@ -26,9 +40,9 @@ export async function GET(request: Request): Promise<Response> {
       return Response.json({ error: error.message }, { status: 500 })
     }
     const body: SettingsResponse = {
-      aiProvider: data?.ai_provider ?? 'gemini',
-      aiModel: data?.ai_model ?? 'gemini-3.1-flash-light',
-      aiSummaryLanguage: data?.ai_summary_language ?? 'Japanese',
+      aiProvider: data?.ai_provider ?? DEFAULT_AI_PROVIDER,
+      aiModel: data?.ai_model ?? DEFAULT_AI_MODEL,
+      aiSummaryLanguage: data?.ai_summary_language ?? DEFAULT_AI_SUMMARY_LANGUAGE,
       aiCustomPrompt: data?.ai_custom_prompt ?? null,
       hasApiKey: Boolean(data?.encrypted_api_key),
     }
@@ -66,13 +80,20 @@ export async function PUT(request: Request): Promise<Response> {
     if (parsed.data.apiKey !== undefined)
       update.encrypted_api_key = encryptString(parsed.data.apiKey)
     if (Object.keys(update).length === 0) {
+      // No-op PUT (all fields omitted). Skip the DB round-trip; the
+      // updated:0 response shape lets clients distinguish a real save.
       return Response.json({ ok: true, updated: 0 })
     }
     const supabase = await getSupabaseForUser(user)
+    // upsert keeps PUT independent of the handle_new_user trigger that
+    // normally seeds the user_settings row at signup. If that trigger
+    // ever changes, settings still write correctly.
     const { error } = await supabase
       .from('user_settings')
-      .update(update)
-      .eq('user_id', user.userId)
+      .upsert(
+        { user_id: user.userId, ...update },
+        { onConflict: 'user_id' },
+      )
     if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ ok: true, updated: Object.keys(update).length })
   } catch (err) {

@@ -53,7 +53,7 @@ function parseSummaryJson(raw: string): z.infer<typeof SummarySchema> {
   if (!result.success) {
     throw new Error(
       `Gemini response missing required fields: ${result.error.issues
-        .map((i) => i.path.join('.'))
+        .map((issue) => issue.path.join('.'))
         .join(', ')}`,
     )
   }
@@ -61,6 +61,8 @@ function parseSummaryJson(raw: string): z.infer<typeof SummarySchema> {
 }
 
 function stripCodeFence(raw: string): string {
-  const fenced = /^```(?:json)?\n([\s\S]*?)\n```$/i.exec(raw)
+  // LLMs occasionally wrap JSON in a ```json ... ``` block, sometimes with
+  // trailing whitespace or a stray newline. Match leniently on both ends.
+  const fenced = /^```(?:json)?\s*\n([\s\S]*?)\n```\s*$/i.exec(raw)
   return fenced ? fenced[1] : raw
 }

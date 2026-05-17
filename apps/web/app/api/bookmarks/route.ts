@@ -1,3 +1,14 @@
+/**
+ * POST /api/bookmarks { url, title? }
+ * Saves a URL and schedules the scrape+summarize pipeline. Returns 200
+ * with { id, status: 'pending' } within milliseconds; the pipeline runs
+ * after the response is flushed via Next.js after(). 23505 (duplicate URL
+ * for this user) surfaces as 409 { error: 'already_in_inbox' }.
+ *
+ * OPTIONS handles the bookmarklet preflight with CORS headers.
+ *
+ * Authenticated via cookie or `Authorization: Bearer <PAT>`.
+ */
 import { after } from 'next/server'
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { corsHeaders, handleOptions } from '@/lib/http/cors'
@@ -35,12 +46,24 @@ export async function POST(request: Request): Promise<Response> {
       .select('id')
       .single()
     if (error || !data) {
+      // 23505 = Postgres unique_violation. items has UNIQUE(user_id, url).
+      if (error?.code === '23505') {
+        return Response.json(
+          { error: 'already_in_inbox' },
+          { status: 409, headers: cors },
+        )
+      }
       return Response.json(
         { error: error?.message ?? 'failed to insert item' },
         { status: 500, headers: cors },
       )
     }
     const itemId = data.id
+    // runPipeline itself catches and marks the item failed via markFailed.
+    // The outer try/catch here only fires when markFailed itself throws
+    // (e.g. DB unreachable); in that rare case the item stays in
+    // processing state and the dashboard's Retry button is the recovery
+    // path.
     after(async () => {
       try {
         await runPipeline({ itemId, userId: user.userId })
@@ -52,7 +75,7 @@ export async function POST(request: Request): Promise<Response> {
   } catch (err) {
     if (err instanceof UnauthorizedError) {
       const headers = new Headers(err.response.headers)
-      for (const [k, v] of cors) headers.set(k, v)
+      for (const [name, value] of cors) headers.set(name, value)
       return new Response(err.response.body, { status: err.response.status, headers })
     }
     throw err

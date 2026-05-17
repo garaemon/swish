@@ -25,7 +25,10 @@ const BOOKMARKLET_TEMPLATE = `(function(){
   }).catch(function(e){ alert('Swish: ' + e.message); });
 })();`
 
-function escapeForJavascriptHref(source: string): string {
+// Collapse all whitespace to a single space (so the resulting `javascript:`
+// URL is a single line, which a browser anchor / bookmark target requires)
+// then URI-encode the body.
+function minifyForBookmarkletHref(source: string): string {
   return encodeURIComponent(source.replace(/\s+/g, ' '))
 }
 
@@ -41,5 +44,5 @@ export function buildBookmarklet(input: BookmarkletInput): string {
     '__PAT__',
     input.pat,
   )
-  return `javascript:${escapeForJavascriptHref(body)}`
+  return `javascript:${minifyForBookmarkletHref(body)}`
 }

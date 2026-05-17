@@ -1,5 +1,11 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import {
+  DEFAULT_AI_MODEL,
+  DEFAULT_AI_PROVIDER,
+  DEFAULT_AI_SUMMARY_LANGUAGE,
+} from '@swish/shared/defaults'
+import { getServerEnv } from '@/lib/env'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AiSettingsForm } from './_components/ai-settings-form'
 import { TokenList } from './_components/token-list'
@@ -45,9 +51,9 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
   ])
 
   const settings: LoadedSettings = {
-    aiProvider: settingsRow.data?.ai_provider ?? 'gemini',
-    aiModel: settingsRow.data?.ai_model ?? 'gemini-3.1-flash-light',
-    aiSummaryLanguage: settingsRow.data?.ai_summary_language ?? 'Japanese',
+    aiProvider: settingsRow.data?.ai_provider ?? DEFAULT_AI_PROVIDER,
+    aiModel: settingsRow.data?.ai_model ?? DEFAULT_AI_MODEL,
+    aiSummaryLanguage: settingsRow.data?.ai_summary_language ?? DEFAULT_AI_SUMMARY_LANGUAGE,
     aiCustomPrompt: settingsRow.data?.ai_custom_prompt ?? null,
     hasApiKey: Boolean(settingsRow.data?.encrypted_api_key),
   }
@@ -55,7 +61,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
   const tokens: LoadedToken[] = (tokensRows.data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
-    createdAt: row.created_at ?? '',
+    createdAt: row.created_at as string,
     expiresAt: row.expires_at,
     lastUsedAt: row.last_used_at,
   }))
@@ -79,7 +85,7 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
         <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
           Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
         </p>
-        <TokenList initial={tokens} apiUrl={process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'} />
+        <TokenList initial={tokens} apiUrl={getServerEnv().NEXT_PUBLIC_APP_URL} />
       </section>
     </main>
   )

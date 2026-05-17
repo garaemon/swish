@@ -1,3 +1,9 @@
+/**
+ * PUT /api/items/[id]/read
+ * Marks an item as read (archives it). 404 when the id is unknown or
+ * belongs to another user — symmetric to keep cross-tenant existence
+ * undetectable. Authenticated via cookie or `Authorization: Bearer <PAT>`.
+ */
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { getSupabaseForUser } from '@/lib/supabase/for-request'
 

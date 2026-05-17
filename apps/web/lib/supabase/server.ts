@@ -19,8 +19,16 @@ export async function createSupabaseServerClient(): Promise<
       return cookieStore.getAll().map(({ name, value }) => ({ name, value }))
     },
     setAll(cookieList) {
-      for (const { name, value, options } of cookieList) {
-        cookieStore.set(name, value, options)
+      // cookies().set() throws when called from a Server Component (only
+      // Server Actions, Route Handlers, and proxy.ts may write cookies).
+      // Swallow the error here because proxy.ts will refresh the cookie on
+      // the next request anyway.
+      try {
+        for (const { name, value, options } of cookieList) {
+          cookieStore.set(name, value, options)
+        }
+      } catch {
+        /* RSC context — relying on proxy.ts to refresh */
       }
     },
   }

@@ -7,6 +7,11 @@ export type AuthedUser = {
   via: 'cookie' | 'pat'
 }
 
+/**
+ * Thrown by requireUser when neither cookie nor PAT auth succeeded.
+ * Carries a prebuilt 401 Response so route handlers can `return err.response`
+ * without rebuilding the JSON body.
+ */
 export class UnauthorizedError extends Error {
   readonly response: Response
 
@@ -23,6 +28,14 @@ export class UnauthorizedError extends Error {
  *   2. or the Supabase cookie session (Web UI).
  *
  * Bearer is preferred so that automated callers do not depend on cookies.
+ *
+ * TODO (CSRF): cookie-authenticated state-changing API routes (PUT
+ * /api/items/[id]/read, POST /api/items/[id]/retry, PUT /api/settings,
+ * POST/DELETE /api/tokens, POST /api/bookmarks) have no Origin check.
+ * Server actions used from pages get automatic CSRF protection from
+ * Next.js; route handlers do not. Before any public deploy, restrict the
+ * cookie path to same-origin requests (or move cookie-based mutation
+ * exclusively through server actions).
  */
 export async function requireUser(req: Request): Promise<AuthedUser> {
   const authHeader = req.headers.get('authorization')

@@ -18,13 +18,20 @@ export function AddUrlModal(): React.JSX.Element {
     event.preventDefault()
     setError(null)
     startTransition(async () => {
-      const result = await addBookmark(url.trim())
-      if (!result.ok) {
-        setError(result.error)
-        return
+      try {
+        const result = await addBookmark(url.trim())
+        if (!result.ok) {
+          setError(result.error)
+          return
+        }
+        reset()
+        setOpen(false)
+      } catch (cause) {
+        // addBookmark returns Result for known errors, but a network drop
+        // or runtime fault would otherwise escape into the error boundary
+        // and freeze the modal. Surface the message inline instead.
+        setError(cause instanceof Error ? cause.message : 'unexpected error')
       }
-      reset()
-      setOpen(false)
     })
   }
 
@@ -56,7 +63,7 @@ export function AddUrlModal(): React.JSX.Element {
                 autoFocus
                 placeholder="https://…"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(event) => setUrl(event.target.value)}
                 className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
               />
               {error ? <p className="text-sm text-red-600">{error}</p> : null}

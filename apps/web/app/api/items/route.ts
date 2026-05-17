@@ -1,31 +1,58 @@
+/**
+ * GET /api/items?limit&is_read=true|false
+ *
+ * Returns the auth user's items, newest first. Authenticated via cookie or
+ * `Authorization: Bearer <PAT>`. Response items use the shared
+ * @swish/shared ItemSummaryDto shape so the CLI / future clients share the
+ * contract.
+ */
+import type { ItemSummaryDto } from '@swish/shared'
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard'
 import { getSupabaseForUser } from '@/lib/supabase/for-request'
 
 export const runtime = 'nodejs'
 
-export type ItemSummary = {
-  id: string
-  url: string
-  title: string | null
-  summaryShort: string | null
-  summaryLong: string | null
-  processStatus: string
-  errorMessage: string | null
-  isRead: boolean
-  sourceType: string
-  createdAt: string
-}
+const DEFAULT_LIMIT = 50
+const MAX_LIMIT = 200
 
+/**
+ * Parses ?limit=N into [1, MAX_LIMIT], falling back to DEFAULT_LIMIT for
+ * missing or non-finite values. Truncates fractional input.
+ */
 function parseLimit(value: string | null): number {
-  const n = value ? Number(value) : 50
-  if (!Number.isFinite(n)) return 50
-  return Math.min(Math.max(Math.trunc(n), 1), 200)
+  const parsed = value ? Number(value) : DEFAULT_LIMIT
+  if (!Number.isFinite(parsed)) return DEFAULT_LIMIT
+  return Math.min(Math.max(Math.trunc(parsed), 1), MAX_LIMIT)
 }
 
 function parseIsRead(value: string | null): boolean | null {
   if (value === 'true') return true
   if (value === 'false') return false
   return null
+}
+
+// The DB CHECK constraint on items.process_status restricts values to
+// (pending, processing, completed, failed). The fallback only fires if a
+// future migration loosens that constraint; warn loudly so the drift is
+// visible.
+function asProcessStatus(value: string | null): ItemSummaryDto['processStatus'] {
+  if (value === 'processing' || value === 'completed' || value === 'failed') {
+    return value
+  }
+  if (value !== null && value !== 'pending') {
+    console.warn(`Unexpected items.process_status value: ${value}`)
+  }
+  return 'pending'
+}
+
+// The DB CHECK constraint on items.source_type restricts values to
+// (bookmark, rss). Same drift caveat as asProcessStatus.
+function asSourceType(value: string): ItemSummaryDto['sourceType'] {
+  if (value === 'rss') return 'rss'
+  if (value !== 'bookmark') {
+    console.warn(`Unexpected items.source_type value: ${value}`)
+  }
+  return 'bookmark'
 }
 
 export async function GET(request: Request): Promise<Response> {
@@ -46,17 +73,21 @@ export async function GET(request: Request): Promise<Response> {
     if (isRead !== null) query = query.eq('is_read', isRead)
     const { data, error } = await query
     if (error) return Response.json({ error: error.message }, { status: 500 })
-    const items: ItemSummary[] = (data ?? []).map((row) => ({
+    const items: ItemSummaryDto[] = (data ?? []).map((row) => ({
       id: row.id,
       url: row.url,
       title: row.title,
       summaryShort: row.summary_short,
       summaryLong: row.summary_long,
-      processStatus: row.process_status ?? 'pending',
+      // DB default seeds 'pending' but the generated type is nullable.
+      processStatus: asProcessStatus(row.process_status),
       errorMessage: row.error_message,
       isRead: row.is_read ?? false,
-      sourceType: row.source_type,
-      createdAt: row.created_at ?? '',
+      sourceType: asSourceType(row.source_type),
+      // DB default `now()` guarantees a value; the generated type only
+      // marks it nullable. Cast rather than ?? '' so a future schema
+      // change surfaces as a runtime error instead of a junk DTO.
+      createdAt: row.created_at as string,
     }))
     return Response.json({ items })
   } catch (err) {

@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type SessionUser = {
@@ -16,4 +17,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   } = await supabase.auth.getUser()
   if (!user) return null
   return { userId: user.id, email: user.email ?? null }
+}
+
+/**
+ * Server action / route helper: requires a logged-in user and returns just
+ * the user id. Redirects to /login otherwise (terminating the request).
+ */
+export async function requireSessionUserId(): Promise<string> {
+  const user = await getSessionUser()
+  if (!user) redirect('/login')
+  return user.userId
 }

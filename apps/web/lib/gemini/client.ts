@@ -1,12 +1,16 @@
+import { getServerEnv } from '@/lib/env'
+
 export type GeminiRequest = {
   apiKey: string
   model: string
   prompt: string
 }
 
-const ENDPOINT =
-  process.env.GEMINI_API_ENDPOINT ||
-  'https://generativelanguage.googleapis.com/v1beta/models'
+const DEFAULT_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
+
+function endpoint(): string {
+  return getServerEnv().GEMINI_API_ENDPOINT || DEFAULT_ENDPOINT
+}
 
 /**
  * Calls Gemini generateContent and returns the first candidate's text.
@@ -14,7 +18,7 @@ const ENDPOINT =
  * no candidate text.
  */
 export async function callGemini(request: GeminiRequest): Promise<string> {
-  const url = `${ENDPOINT}/${encodeURIComponent(request.model)}:generateContent`
+  const url = `${endpoint()}/${encodeURIComponent(request.model)}:generateContent`
   const response = await fetch(url, {
     method: 'POST',
     headers: {

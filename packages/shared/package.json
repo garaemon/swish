@@ -7,6 +7,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./bookmarklet": "./src/bookmarklet.ts"
+    "./bookmarklet": "./src/bookmarklet.ts",
+    "./defaults": "./src/defaults.ts"
   }
 }

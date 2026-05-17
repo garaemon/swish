@@ -9,9 +9,17 @@ const ServerEnvSchema = z.object({
     .min(1, 'MASTER_KEY must be a base64-encoded 32-byte value'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   NEXT_PUBLIC_APP_URL: z.url(),
+  GEMINI_API_ENDPOINT: z.url().optional(),
+})
+
+const PublicEnvSchema = ServerEnvSchema.pick({
+  NEXT_PUBLIC_SUPABASE_URL: true,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: true,
+  NEXT_PUBLIC_APP_URL: true,
 })
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>
+export type PublicEnv = z.infer<typeof PublicEnvSchema>
 
 let cachedEnv: ServerEnv | undefined
 
@@ -31,6 +39,26 @@ export function getServerEnv(): ServerEnv {
   }
   cachedEnv = parsed.data
   return cachedEnv
+}
+
+/**
+ * Browser-safe env reader. Only includes NEXT_PUBLIC_* values that Next.js
+ * inlines at build time. Throws on missing values with the same shape as
+ * getServerEnv so failure messages are consistent across the codebase.
+ */
+export function getPublicEnv(): PublicEnv {
+  const parsed = PublicEnvSchema.safeParse({
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  })
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+      .join('\n')
+    throw new Error(`Invalid public environment:\n${issues}`)
+  }
+  return parsed.data
 }
 
 /**
