@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Nav } from '@/app/_components/nav'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AddUrlModal } from './_components/add-url-modal'
 import { ItemRow, type InboxItem } from './_components/item-row'
@@ -32,9 +32,12 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
 
   if (error) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-12">
-        <p className="text-red-600">Failed to load inbox: {error.message}</p>
-      </main>
+      <>
+        <Nav />
+        <main className="mx-auto w-full max-w-3xl px-6 py-12">
+          <p className="text-red-600">Failed to load inbox: {error.message}</p>
+        </main>
+      </>
     )
   }
 
@@ -52,33 +55,31 @@ export default async function DashboardPage(): Promise<React.JSX.Element> {
   }))
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-6 py-12">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Inbox</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {items.length} unread {items.length === 1 ? 'item' : 'items'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="text-sm text-zinc-500 hover:underline">
-            Settings
-          </Link>
+    <>
+      <Nav />
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-12">
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Inbox</h1>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {items.length} unread {items.length === 1 ? 'item' : 'items'}
+            </p>
+          </div>
           <AddUrlModal />
-        </div>
-      </header>
+        </header>
 
-      {items.length === 0 ? (
-        <p className="rounded-md border border-dashed border-zinc-300 px-6 py-12 text-center text-zinc-500 dark:border-zinc-700">
-          Inbox zero. Add a URL or hit the bookmarklet to save something.
-        </p>
-      ) : (
-        <ul className="overflow-hidden rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-          {items.map((item) => (
-            <ItemRow key={item.id} item={item} />
-          ))}
-        </ul>
-      )}
-    </main>
+        {items.length === 0 ? (
+          <div className="w-full rounded-md border border-dashed border-zinc-300 px-6 py-12 text-center text-zinc-500 dark:border-zinc-700">
+            <p>Inbox zero. Add a URL or hit the bookmarklet to save something.</p>
+          </div>
+        ) : (
+          <ul className="w-full overflow-hidden rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+            {items.map((item) => (
+              <ItemRow key={item.id} item={item} />
+            ))}
+          </ul>
+        )}
+      </main>
+    </>
   )
 }

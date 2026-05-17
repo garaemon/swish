@@ -5,6 +5,7 @@ import {
   DEFAULT_AI_PROVIDER,
   DEFAULT_AI_SUMMARY_LANGUAGE,
 } from '@swish/shared/defaults'
+import { Nav } from '@/app/_components/nav'
 import { getServerEnv } from '@/lib/env'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { AiSettingsForm } from './_components/ai-settings-form'
@@ -67,26 +68,29 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
   }))
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-12 px-6 py-12">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Signed in as {user.email}
-        </p>
-      </header>
+    <>
+      <Nav />
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-12 px-6 py-12">
+        <header>
+          <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Signed in as {user.email}
+          </p>
+        </header>
 
-      <section>
-        <h2 className="mb-3 text-xl font-medium">AI</h2>
-        <AiSettingsForm initial={settings} />
-      </section>
+        <section>
+          <h2 className="mb-3 text-xl font-medium">AI</h2>
+          <AiSettingsForm initial={settings} />
+        </section>
 
-      <section>
-        <h2 className="mb-3 text-xl font-medium">Personal access tokens</h2>
-        <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-          Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
-        </p>
-        <TokenList initial={tokens} apiUrl={getServerEnv().NEXT_PUBLIC_APP_URL} />
-      </section>
-    </main>
+        <section>
+          <h2 className="mb-3 text-xl font-medium">Personal access tokens</h2>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+            Issue a PAT for the CLI, bookmarklet, or iOS Shortcuts.
+          </p>
+          <TokenList initial={tokens} apiUrl={getServerEnv().NEXT_PUBLIC_APP_URL} />
+        </section>
+      </main>
+    </>
   )
 }

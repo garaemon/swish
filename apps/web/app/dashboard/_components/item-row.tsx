@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useTransition } from 'react'
-import { markRead, retryItem } from '../actions'
+import { deleteItem, markRead, retryItem } from '../actions'
 import { StatusBadge } from './status-badge'
 
 export type InboxItem = {
@@ -68,7 +68,19 @@ export function ItemRow({ item }: Props): React.JSX.Element {
           onClick={() => startTransition(() => markRead(item.id))}
           className="rounded border border-zinc-300 px-2 py-1 text-xs text-zinc-700 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200"
         >
-          {pending ? '…' : 'Mark read'}
+          {pending ? '…' : 'Archive'}
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => {
+            if (confirm('Delete this item permanently?')) {
+              startTransition(() => deleteItem(item.id))
+            }
+          }}
+          className="rounded border border-red-300 px-2 py-1 text-xs text-red-700 disabled:opacity-50 dark:border-red-800 dark:text-red-300"
+        >
+          Delete
         </button>
       </div>
     </li>

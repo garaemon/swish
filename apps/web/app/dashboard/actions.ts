@@ -19,6 +19,18 @@ export async function markRead(itemId: string): Promise<void> {
   revalidatePath('/dashboard')
 }
 
+export async function deleteItem(itemId: string): Promise<void> {
+  const userId = await requireSessionUserId()
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase
+    .from('items')
+    .delete()
+    .eq('id', itemId)
+    .eq('user_id', userId)
+  if (error) throw error
+  revalidatePath('/dashboard')
+}
+
 export async function retryItem(itemId: string): Promise<void> {
   const userId = await requireSessionUserId()
   const supabase = await createSupabaseServerClient()
