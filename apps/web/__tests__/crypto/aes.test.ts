@@ -1,20 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { randomBytes } from 'node:crypto'
 import { decryptString, encryptString } from '@/lib/crypto/aes'
+import { resetServerEnvCache } from '@/lib/env'
 
 const originalEnv = { ...process.env }
 
-function setMasterKey(): void {
+function setValidEnv(): void {
+  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321'
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key'
   process.env.MASTER_KEY = randomBytes(32).toString('base64')
+  process.env.JWT_SECRET = 'a-very-long-jwt-secret-of-at-least-32-chars'
+  process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
 }
 
 describe('AES-256-GCM envelope', () => {
   beforeEach(() => {
-    setMasterKey()
+    setValidEnv()
+    resetServerEnvCache()
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
+    resetServerEnvCache()
   })
 
   it('round-trips an arbitrary UTF-8 string', () => {
@@ -29,9 +37,9 @@ describe('AES-256-GCM envelope', () => {
   })
 
   it('produces a different envelope every call (random IV)', () => {
-    const a = encryptString('same input')
-    const b = encryptString('same input')
-    expect(a).not.toBe(b)
+    const firstEnvelope = encryptString('same input')
+    const secondEnvelope = encryptString('same input')
+    expect(firstEnvelope).not.toBe(secondEnvelope)
   })
 
   it('throws when the auth tag has been tampered with', () => {

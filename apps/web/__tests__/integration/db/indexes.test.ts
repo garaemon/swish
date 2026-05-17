@@ -28,7 +28,7 @@ describe('expected indexes', () => {
        order by indexname`,
       [EXPECTED_INDEXES as unknown as string[]],
     )
-    const present = rows.map((r) => r.indexname).sort()
+    const present = rows.map((row) => row.indexname).sort()
     expect(present).toEqual([...EXPECTED_INDEXES].sort())
   })
 })

@@ -48,23 +48,35 @@ describe('pipeline status transitions', () => {
   })
 
   it('markProcessing flips pending -> processing and clears error', async () => {
-    await markProcessing(admin, itemId)
+    await markProcessing(admin, itemId, userId)
     const row = await readStatus()
     expect(row.status).toBe('processing')
     expect(row.err).toBeNull()
   })
 
   it('markFailed records the error message', async () => {
-    await markFailed(admin, itemId, new Error('boom'))
+    await markFailed(admin, itemId, userId, new Error('boom'))
     const row = await readStatus()
     expect(row.status).toBe('failed')
     expect(row.err).toBe('boom')
   })
 
   it('markCompleted clears the failure', async () => {
-    await markCompleted(admin, itemId)
+    await markCompleted(admin, itemId, userId)
     const row = await readStatus()
     expect(row.status).toBe('completed')
     expect(row.err).toBeNull()
+  })
+
+  it('refuses to update when user_id does not match', async () => {
+    const otherUser = await createTestUser(admin)
+    try {
+      // Should affect zero rows; status stays at 'completed' from prior test.
+      await markProcessing(admin, itemId, otherUser.id)
+      const row = await readStatus()
+      expect(row.status).toBe('completed')
+    } finally {
+      await deleteTestUser(admin, otherUser.id)
+    }
   })
 })

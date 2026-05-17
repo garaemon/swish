@@ -1,6 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Client } from 'pg'
 import { connectLocalPg } from '../../helpers/pg'
+import {
+  ANON_KEY,
+  SUPABASE_URL,
+  createAdminClient,
+  createTestUser,
+  deleteTestUser,
+} from '../../helpers/supabase-admin'
 
 const RLS_TABLES = [
   'feeds',
@@ -51,7 +59,9 @@ describe('row level security', () => {
        where schemaname = 'public'
        group by tablename`,
     )
-    const byTable = new Map(rows.map((r) => [r.tablename, Number(r.policy_count)]))
+    const byTable = new Map(
+      rows.map((row) => [row.tablename, Number(row.policy_count)]),
+    )
     expect(byTable.get('profiles') ?? 0).toBeGreaterThanOrEqual(2)
     expect(byTable.get('user_settings') ?? 0).toBeGreaterThanOrEqual(1)
     expect(byTable.get('personal_access_tokens') ?? 0).toBeGreaterThanOrEqual(1)
@@ -59,5 +69,42 @@ describe('row level security', () => {
     expect(byTable.get('items') ?? 0).toBeGreaterThanOrEqual(1)
     expect(byTable.get('tags') ?? 0).toBeGreaterThanOrEqual(1)
     expect(byTable.get('item_tags') ?? 0).toBeGreaterThanOrEqual(1)
+  })
+
+  it('item-level RLS isolates rows between two users', async () => {
+    const admin = createAdminClient()
+    const alice = await createTestUser(admin)
+    const bob = await createTestUser(admin)
+    try {
+      await admin
+        .from('items')
+        .insert({
+          user_id: alice.id,
+          url: `https://example.com/?rls-${Date.now()}-alice`,
+          source_type: 'bookmark',
+        })
+
+      const aliceClient = createClient(SUPABASE_URL, ANON_KEY)
+      await aliceClient.auth.signInWithPassword({
+        email: alice.email,
+        password: alice.password,
+      })
+      const aliceSee = await aliceClient.from('items').select('id, user_id')
+      expect(aliceSee.error).toBeNull()
+      expect(aliceSee.data?.every((row) => row.user_id === alice.id)).toBe(true)
+      expect(aliceSee.data?.length).toBeGreaterThanOrEqual(1)
+
+      const bobClient: SupabaseClient = createClient(SUPABASE_URL, ANON_KEY)
+      await bobClient.auth.signInWithPassword({
+        email: bob.email,
+        password: bob.password,
+      })
+      const bobSee = await bobClient.from('items').select('id, user_id')
+      expect(bobSee.error).toBeNull()
+      expect(bobSee.data ?? []).toHaveLength(0)
+    } finally {
+      await deleteTestUser(admin, alice.id)
+      await deleteTestUser(admin, bob.id)
+    }
   })
 })

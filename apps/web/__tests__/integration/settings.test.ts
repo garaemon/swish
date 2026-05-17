@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Client } from 'pg'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import {
+  DEFAULT_AI_PROVIDER,
+  DEFAULT_AI_SUMMARY_LANGUAGE,
+} from '@swish/shared/defaults'
 import { issuePat } from '@/lib/auth/pat'
+import { APP_URL, isDevServerUp, requireDevServer } from '../helpers/dev-server'
 import { connectLocalPg } from '../helpers/pg'
 import {
   createAdminClient,
@@ -9,17 +14,7 @@ import {
   deleteTestUser,
 } from '../helpers/supabase-admin'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 const TEST_JWT_SECRET = process.env.JWT_SECRET || 'a-very-long-test-jwt-secret-of-at-least-32-chars'
-
-async function isDevServerUp(): Promise<boolean> {
-  try {
-    const r = await fetch(`${APP_URL}/api/health`, { signal: AbortSignal.timeout(2000) })
-    return r.ok
-  } catch {
-    return false
-  }
-}
 
 describe('/api/settings via PAT', () => {
   let admin: SupabaseClient
@@ -50,19 +45,19 @@ describe('/api/settings via PAT', () => {
   })
 
   it('GET returns hasApiKey=false for a fresh user', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'settings GET')) return
     const response = await fetch(`${APP_URL}/api/settings`, {
       headers: { authorization: `Bearer ${pat}` },
     })
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.hasApiKey).toBe(false)
-    expect(body.aiProvider).toBe('gemini')
-    expect(body.aiSummaryLanguage).toBe('Japanese')
+    expect(body.aiProvider).toBe(DEFAULT_AI_PROVIDER)
+    expect(body.aiSummaryLanguage).toBe(DEFAULT_AI_SUMMARY_LANGUAGE)
   })
 
   it('PUT stores the apiKey AES-encrypted', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'settings PUT')) return
     const putResponse = await fetch(`${APP_URL}/api/settings`, {
       method: 'PUT',
       headers: {
@@ -90,7 +85,7 @@ describe('/api/settings via PAT', () => {
   })
 
   it('rejects requests without authentication', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'settings unauth')) return
     const response = await fetch(`${APP_URL}/api/settings`)
     expect(response.status).toBe(401)
   })

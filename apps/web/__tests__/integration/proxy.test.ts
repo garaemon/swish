@@ -1,53 +1,33 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+import { APP_URL, isDevServerUp, requireDevServer } from '../helpers/dev-server'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-async function isDevServerUp(): Promise<boolean> {
-  try {
-    const response = await fetch(`${APP_URL}/api/health`, {
-      signal: AbortSignal.timeout(2000),
-    })
-    return response.ok
-  } catch {
-    return false
-  }
-}
-
-describe.skipIf(process.env.CI === 'true')('proxy', () => {
+// The proxy is only exercised when the Next.js dev server is up. Each test
+// uses requireDevServer so a missing server emits a visible console.warn
+// (consistent with the rest of the integration suite) instead of silently
+// passing.
+describe('proxy', () => {
   let devUp = false
 
   beforeAll(async () => {
     devUp = await isDevServerUp()
-    if (!devUp) {
-      console.warn(
-        `dev server not reachable at ${APP_URL}; run \`pnpm --filter web dev\` to enable proxy tests`,
-      )
-    }
   })
 
   it('redirects unauthenticated requests for protected paths to /login', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/dashboard`, {
-      redirect: 'manual',
-    })
+    if (requireDevServer(devUp, 'proxy redirect')) return
+    const response = await fetch(`${APP_URL}/dashboard`, { redirect: 'manual' })
     expect(response.status).toBe(307)
     expect(response.headers.get('location')).toContain('/login')
   })
 
-  it('allows /login through without redirect', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/login`, {
-      redirect: 'manual',
-    })
-    // 404 (no page yet) or 200 — both are fine, just not a redirect
-    expect(response.status).not.toBe(307)
+  it('allows /login through and renders the page', async () => {
+    if (requireDevServer(devUp, 'proxy /login')) return
+    const response = await fetch(`${APP_URL}/login`, { redirect: 'manual' })
+    expect(response.status).toBe(200)
   })
 
   it('bypasses the proxy for /api/*', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/api/health`, {
-      redirect: 'manual',
-    })
+    if (requireDevServer(devUp, 'proxy bypass /api')) return
+    const response = await fetch(`${APP_URL}/api/health`, { redirect: 'manual' })
     expect(response.status).toBe(200)
   })
 })

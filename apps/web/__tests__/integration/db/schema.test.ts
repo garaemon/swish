@@ -29,7 +29,7 @@ describe('public schema', () => {
        where table_schema = 'public'
        order by table_name`,
     )
-    const present = rows.map((r) => r.table_name)
+    const present = rows.map((row) => row.table_name)
     for (const expected of EXPECTED_TABLES) {
       expect(present).toContain(expected)
     }

@@ -14,10 +14,12 @@ vi.mock('@/lib/supabase/service', () => ({
 
 import { getSessionUser } from '@/lib/auth/session'
 import { verifyPat } from '@/lib/auth/pat'
+import { createSupabaseServiceClient } from '@/lib/supabase/service'
 import { requireUser, UnauthorizedError } from '@/lib/auth/guard'
 
 const mockGetSessionUser = vi.mocked(getSessionUser)
 const mockVerifyPat = vi.mocked(verifyPat)
+const mockCreateService = vi.mocked(createSupabaseServiceClient)
 
 function requestWithHeaders(headers: Record<string, string> = {}): Request {
   return new Request('http://localhost/api/items', { headers })
@@ -27,6 +29,7 @@ describe('requireUser (cookie + PAT)', () => {
   beforeEach(() => {
     mockGetSessionUser.mockReset()
     mockVerifyPat.mockReset()
+    mockCreateService.mockClear()
   })
 
   it('uses Bearer PAT when Authorization header is present', async () => {
@@ -36,6 +39,9 @@ describe('requireUser (cookie + PAT)', () => {
     )
     expect(result).toEqual({ userId: 'pat-user', via: 'pat' })
     expect(mockGetSessionUser).not.toHaveBeenCalled()
+    // Guard must pass the service-role client into verifyPat so the
+    // lookup against personal_access_tokens is not blocked by RLS.
+    expect(mockCreateService).toHaveBeenCalledTimes(1)
   })
 
   it('throws UnauthorizedError when PAT verification fails', async () => {

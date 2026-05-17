@@ -95,7 +95,10 @@ describe('runPipeline (orchestrator)', () => {
           return new Response(JSON.stringify(GEMINI_RESPONSE), { status: 200 })
         }
         if (url.startsWith('https://test-')) {
-          return new Response(SAMPLE_HTML, { status: 200 })
+          return new Response(SAMPLE_HTML, {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+          })
         }
         return realFetch(input, init)
       }),
@@ -118,7 +121,10 @@ describe('runPipeline (orchestrator)', () => {
       vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input instanceof Request ? input.url : input)
         if (url.startsWith('https://test-')) {
-          return new Response('<html></html>', { status: 200 })
+          return new Response('<html></html>', {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+          })
         }
         return realFetch(input, init)
       }),
@@ -144,7 +150,10 @@ describe('runPipeline (orchestrator)', () => {
           )
         }
         if (url.startsWith('https://test-')) {
-          return new Response(SAMPLE_HTML, { status: 200 })
+          return new Response(SAMPLE_HTML, {
+            status: 200,
+            headers: { 'content-type': 'text/html; charset=utf-8' },
+          })
         }
         return realFetch(input, init)
       }),

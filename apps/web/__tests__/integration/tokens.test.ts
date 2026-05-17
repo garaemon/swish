@@ -1,23 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { issuePat } from '@/lib/auth/pat'
+import { APP_URL, isDevServerUp, requireDevServer } from '../helpers/dev-server'
 import {
   createAdminClient,
   createTestUser,
   deleteTestUser,
 } from '../helpers/supabase-admin'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 const TEST_JWT_SECRET = process.env.JWT_SECRET || 'a-very-long-test-jwt-secret-of-at-least-32-chars'
-
-async function isDevServerUp(): Promise<boolean> {
-  try {
-    const r = await fetch(`${APP_URL}/api/health`, { signal: AbortSignal.timeout(2000) })
-    return r.ok
-  } catch {
-    return false
-  }
-}
 
 describe('/api/tokens', () => {
   let admin: SupabaseClient
@@ -45,18 +36,18 @@ describe('/api/tokens', () => {
   })
 
   it('GET lists existing tokens', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'tokens GET')) return
     const response = await fetch(`${APP_URL}/api/tokens`, {
       headers: { authorization: `Bearer ${bootstrapPat}` },
     })
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(Array.isArray(body.tokens)).toBe(true)
-    expect(body.tokens.some((t: { name: string }) => t.name === 'bootstrap')).toBe(true)
+    expect(body.tokens.some((token: { name: string }) => token.name === 'bootstrap')).toBe(true)
   })
 
   it('POST issues a token, then DELETE revokes it', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'tokens POST + DELETE')) return
     const createResponse = await fetch(`${APP_URL}/api/tokens`, {
       method: 'POST',
       headers: {
@@ -87,7 +78,7 @@ describe('/api/tokens', () => {
   })
 
   it('POST rejects an invalid body', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'tokens POST invalid')) return
     const response = await fetch(`${APP_URL}/api/tokens`, {
       method: 'POST',
       headers: {

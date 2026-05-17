@@ -3,21 +3,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { encryptString } from '@/lib/crypto/aes'
 import { issuePat } from '@/lib/auth/pat'
 import {
+  APP_URL,
+  isDevServerUp,
+  requireDevServer,
+  sleep,
+} from '../helpers/dev-server'
+import {
   createAdminClient,
   createTestUser,
   deleteTestUser,
 } from '../helpers/supabase-admin'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-async function isDevServerUp(): Promise<boolean> {
-  try {
-    const r = await fetch(`${APP_URL}/api/health`, { signal: AbortSignal.timeout(2000) })
-    return r.ok
-  } catch {
-    return false
-  }
-}
 
 async function waitForCompletion(
   admin: SupabaseClient,
@@ -34,17 +29,23 @@ async function waitForCompletion(
     if (data && data.process_status !== 'pending' && data.process_status !== 'processing') {
       return { status: data.process_status, row: data as Record<string, unknown> }
     }
-    await new Promise((r) => setTimeout(r, 500))
+    await sleep(500)
   }
   return { status: null, row: null }
 }
+
+// When GEMINI_API_KEY is present we exercise the real Gemini API path and
+// expect the item to land in `completed`. Otherwise the pipeline call
+// fails at the HTTP layer and we only assert that the item transitions
+// out of pending/processing. Either way the test verifies the scrape +
+// async transition contract.
+const realGeminiKey = process.env.GEMINI_API_KEY
 
 describe('/api/bookmarks (async pipeline)', () => {
   let admin: SupabaseClient
   let userId: string
   let pat: string
   let devUp = false
-  const realGeminiKey = process.env.GEMINI_API_KEY
 
   beforeAll(async () => {
     admin = createAdminClient()
@@ -70,7 +71,7 @@ describe('/api/bookmarks (async pipeline)', () => {
   })
 
   it('handles OPTIONS preflight with CORS headers', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'bookmarks OPTIONS')) return
     const response = await fetch(`${APP_URL}/api/bookmarks`, {
       method: 'OPTIONS',
       headers: {
@@ -85,7 +86,7 @@ describe('/api/bookmarks (async pipeline)', () => {
   })
 
   it('POST returns 200 quickly and persists a pending item', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'bookmarks POST fast')) return
     const url = `https://example.com/?test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const before = Date.now()
     const response = await fetch(`${APP_URL}/api/bookmarks`, {
@@ -105,7 +106,7 @@ describe('/api/bookmarks (async pipeline)', () => {
   })
 
   it('POST then the pipeline transitions to a terminal state', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'bookmarks pipeline terminal')) return
     const url = `https://example.com/?pipeline-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const postResponse = await fetch(`${APP_URL}/api/bookmarks`, {
       method: 'POST',
@@ -120,16 +121,18 @@ describe('/api/bookmarks (async pipeline)', () => {
     expect(status === 'completed' || status === 'failed').toBe(true)
     expect(typeof row?.content_text).toBe('string')
     expect((row?.content_text as string).length).toBeGreaterThan(0)
-    if (status === 'completed') {
+    if (realGeminiKey) {
+      // With a real key the pipeline should succeed and persist summaries.
+      expect(status).toBe('completed')
       expect(typeof row?.summary_short).toBe('string')
       expect(typeof row?.summary_long).toBe('string')
-    } else {
+    } else if (status === 'failed') {
       expect(typeof row?.error_message).toBe('string')
     }
   })
 
   it('rejects malformed body with 400', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'bookmarks malformed body')) return
     const response = await fetch(`${APP_URL}/api/bookmarks`, {
       method: 'POST',
       headers: {
@@ -142,7 +145,7 @@ describe('/api/bookmarks (async pipeline)', () => {
   })
 
   it('rejects unauthenticated requests with 401', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'bookmarks unauthenticated')) return
     const response = await fetch(`${APP_URL}/api/bookmarks`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

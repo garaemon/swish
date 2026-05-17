@@ -3,21 +3,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { issuePat } from '@/lib/auth/pat'
 import { encryptString } from '@/lib/crypto/aes'
 import {
+  APP_URL,
+  isDevServerUp,
+  requireDevServer,
+  sleep,
+} from '../helpers/dev-server'
+import {
   createAdminClient,
   createTestUser,
   deleteTestUser,
 } from '../helpers/supabase-admin'
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-
-async function isDevServerUp(): Promise<boolean> {
-  try {
-    const r = await fetch(`${APP_URL}/api/health`, { signal: AbortSignal.timeout(2000) })
-    return r.ok
-  } catch {
-    return false
-  }
-}
 
 async function waitUntil(
   admin: SupabaseClient,
@@ -31,7 +26,7 @@ async function waitUntil(
     if (data && predicate(data as Record<string, unknown>)) {
       return data as Record<string, unknown>
     }
-    await new Promise((r) => setTimeout(r, 500))
+    await sleep(500)
   }
   return null
 }
@@ -65,7 +60,7 @@ describe('POST /api/items/[id]/retry', () => {
   })
 
   it('flips a failed item back to pending and runs the pipeline', async () => {
-    if (!devUp) return
+    if (requireDevServer(devUp, 'retry pipeline')) return
     const { data: item } = await admin
       .from('items')
       .insert({
@@ -87,19 +82,43 @@ describe('POST /api/items/[id]/retry', () => {
     expect(body.status).toBe('pending')
 
     const terminal = await waitUntil(admin, item!.id, (row) => {
-      const s = row.process_status as string
-      return s === 'completed' || s === 'failed'
+      const status = row.process_status as string
+      return status === 'completed' || status === 'failed'
     })
     expect(terminal).not.toBeNull()
     expect(['completed', 'failed']).toContain(terminal!.process_status)
   })
 
   it('returns 404 for an unknown id', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/api/items/00000000-0000-0000-0000-000000000000/retry`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${pat}` },
-    })
+    if (requireDevServer(devUp, 'retry 404')) return
+    const response = await fetch(
+      `${APP_URL}/api/items/00000000-0000-0000-0000-000000000000/retry`,
+      { method: 'POST', headers: { authorization: `Bearer ${pat}` } },
+    )
     expect(response.status).toBe(404)
+  })
+
+  it("returns 404 for another user's item id (no cross-tenant leak)", async () => {
+    if (requireDevServer(devUp, 'retry cross-tenant 404')) return
+    const otherUser = await createTestUser(admin)
+    try {
+      const { data: otherItem } = await admin
+        .from('items')
+        .insert({
+          user_id: otherUser.id,
+          url: `https://example.com/?retry-xt-${Date.now()}`,
+          source_type: 'bookmark',
+          process_status: 'failed',
+        })
+        .select('id')
+        .single()
+      const response = await fetch(`${APP_URL}/api/items/${otherItem!.id}/retry`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${pat}` },
+      })
+      expect(response.status).toBe(404)
+    } finally {
+      await deleteTestUser(admin, otherUser.id)
+    }
   })
 })
