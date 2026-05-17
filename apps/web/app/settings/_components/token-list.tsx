@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { BookmarkletLink } from './bookmarklet-link'
+import { IosShortcutSetup } from './ios-shortcut-setup'
 
 export type TokenRow = {
   id: string
@@ -137,6 +138,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
           <p className="mt-1">
             <BookmarkletLink apiUrl={apiUrl} pat={justIssued.token} />
           </p>
+          <IosShortcutSetup apiUrl={apiUrl} pat={justIssued.token} />
         </div>
       ) : null}
 
