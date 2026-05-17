@@ -1,6 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  AI_MODEL_OPTIONS,
+  AI_PROVIDER_OPTIONS,
+  DEFAULT_AI_MODEL,
+} from '@swish/shared/defaults'
 
 export type AiSettingsValue = {
   aiProvider: string
@@ -21,6 +26,24 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
   const [hasApiKey, setHasApiKey] = useState(initial.hasApiKey)
   const [status, setStatus] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Filter the model list to the currently selected provider. If the stored
+  // model is not in the list (e.g. legacy `gemini-3.1-flash-light`) keep it
+  // visible as a "current" option so the form does not silently swap it.
+  const modelsForProvider = useMemo(() => {
+    const base = AI_MODEL_OPTIONS.filter((option) => option.provider === provider)
+    if (model && !base.some((option) => option.value === model)) {
+      return [{ provider, value: model, label: `${model} (unknown — pick a supported model)` }, ...base]
+    }
+    return base
+  }, [provider, model])
+
+  function handleProviderChange(next: string): void {
+    setProvider(next)
+    // Reset model to that provider's default when switching providers.
+    const firstForNext = AI_MODEL_OPTIONS.find((option) => option.provider === next)
+    setModel(firstForNext?.value ?? DEFAULT_AI_MODEL)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
@@ -58,19 +81,31 @@ export function AiSettingsForm({ initial }: Props): React.JSX.Element {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-md border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
       <label className="flex flex-col gap-1 text-sm">
         Provider
-        <input
+        <select
           value={provider}
-          onChange={(event) => setProvider(event.target.value)}
+          onChange={(event) => handleProviderChange(event.target.value)}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-        />
+        >
+          {AI_PROVIDER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Model
-        <input
+        <select
           value={model}
           onChange={(event) => setModel(event.target.value)}
           className="rounded border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-        />
+        >
+          {modelsForProvider.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="flex flex-col gap-1 text-sm">
         Summary language

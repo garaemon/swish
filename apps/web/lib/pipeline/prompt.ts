@@ -10,9 +10,11 @@ export type PromptInput = {
 const MAX_CONTENT_CHARS = 24_000
 
 const SYSTEM_INSTRUCTION = `You are Swish, a summarization assistant for personal reading.
-Return a strict JSON object with these exact keys:
+Return a strict JSON object with these exact keys — BOTH are REQUIRED:
   - "summary_short": one or two sentences (max ~200 chars) capturing the article
-  - "summary_long": a markdown bulleted list (3-7 bullets) of the most important details
+  - "summary_long": a markdown bulleted list (3-7 "- " bullets) of the most important details
+If the article is short, "summary_long" must STILL be a bulleted list — repeat
+the key points across multiple bullets rather than skipping the field.
 Do not include any text outside the JSON object. Do not include code fences.`
 
 /**

@@ -8,6 +8,19 @@ export type GeminiRequest = {
 
 const DEFAULT_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
 
+// Force the model to produce a JSON object with both required fields. Without
+// the schema, Gemini occasionally returns only summary_short for shorter
+// inputs and the downstream zod parse fails.
+const SUMMARY_RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    summary_short: { type: 'string' },
+    summary_long: { type: 'string' },
+  },
+  required: ['summary_short', 'summary_long'],
+  propertyOrdering: ['summary_short', 'summary_long'],
+}
+
 function endpoint(): string {
   return getServerEnv().GEMINI_API_ENDPOINT || DEFAULT_ENDPOINT
 }
@@ -27,7 +40,10 @@ export async function callGemini(request: GeminiRequest): Promise<string> {
     },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: request.prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' },
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: SUMMARY_RESPONSE_SCHEMA,
+      },
     }),
     signal: AbortSignal.timeout(60_000),
   })
