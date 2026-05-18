@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint-test-build:
+    name: lint / test / build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect workspace
+        id: workspace
+        run: |
+          if [ -f package.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No package.json at repo root; skipping lint/test/build. This is expected until PR 1 (workspace bootstrap) lands."
+          fi
+
+      - name: Setup pnpm
+        if: steps.workspace.outputs.present == 'true'
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        if: steps.workspace.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        if: steps.workspace.outputs.present == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        if: steps.workspace.outputs.present == 'true'
+        run: pnpm -r lint
+
+      - name: Test
+        if: steps.workspace.outputs.present == 'true'
+        run: pnpm -r test
+
+      - name: Build web
+        if: steps.workspace.outputs.present == 'true'
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+          MASTER_KEY: ci-master-key-placeholder
+          JWT_SECRET: ci-jwt-secret-placeholder-must-be-at-least-32-chars
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: |
+          if pnpm -r --filter web exec true >/dev/null 2>&1; then
+            pnpm --filter web build
+          else
+            echo "::notice::No 'web' workspace package yet; skipping build."
+          fi
