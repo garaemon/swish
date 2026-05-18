@@ -3,4 +3,4 @@
 // throws at import time when bundled into a Client Component module; under
 // the test runner there is no such distinction, so a no-op file is safe
 // and lets us exercise service-role code directly.
-export {};
+export {}
