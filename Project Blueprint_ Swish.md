@@ -1,259 +1,291 @@
-# **Swish: パーソナルRSS & ブックマークマネージャー 完全設計書**
+# **Swish: Personal RSS & Bookmark Manager — Full Design Document**
 
-## **1\. プロジェクト概要・コンセプト**
+## **1\. Project Overview & Concept**
 
-**コンセプト：「入力は無意識、消費は効率的」**
+**Concept: "Unconscious capture, efficient consumption"**
 
-MatterやFeedlyの良さを引き継ぎつつ、「自分にとってノイズのない、処理しやすい情報だけが溜まる・読める」状態を作る。機能は最小限に絞り、個人の情報消化（Inbox Zero）に特化する。
+Carry over what Matter and Feedly did well, while keeping only the
+information that is signal — not noise — for *this* user, in a state that
+is easy to process. Trim features to the minimum and focus on personal
+information digestion (Inbox Zero).
 
-### **プラットフォーム別 UX**
+### **Per-platform UX**
 
-* **スマホ (Mobile):** iOSショートカット等を使用し、共有されたURLをバックグラウンドで直接APIに送信。アプリが開いたり完了画面で止まる「摩擦」をゼロにする（Swish体験）。  
-* **PC (Web / ブックマークレット):** 拡張機能が入れられない会社PC等からも、ブックマークレットで1クリック保存（画面遷移なし）。Web UIは未読の消化に特化。  
-* **CLI:** ターミナルから swish add \<URL\> で即座に保存。
+* **Mobile:** Use iOS Shortcuts and friends to post a shared URL directly
+  to the API in the background. The app never has to open and there is no
+  completion screen to wait on — that is the "Swish" feel: zero friction.
+* **PC (Web / Bookmarklet):** From a locked-down work PC where browser
+  extensions are forbidden, save with one click via a bookmarklet — no
+  navigation. The Web UI is dedicated to consuming the inbox.
+* **CLI:** Save instantly from a terminal with `swish add <URL>`.
 
-## **2\. 技術スタック**
+## **2\. Tech Stack**
 
-個人開発で「早く・安く・メンテしやすく」作るためのモダン構成。
+A modern stack picked so a solo developer can build "fast, cheap, and
+easy to maintain."
 
-* **言語:** TypeScript  
-* **フレームワーク:** Next.js (App Router)  
-* **インフラ:** Vercel (バックグラウンド処理の waitUntil 活用)  
-* **BaaS (DB / Auth):** Supabase (PostgreSQL, GoTrue Auth)  
-* **AI:** Gemini API (デフォルトモデル: gemini-3.1-flash-light)  
-  * **BYOK (Bring Your Own Key) 方式:** ユーザー自身がAPIキーを設定する。  
-* **スクレイピング:** @mozilla/readability, jsdom
+* **Language:** TypeScript
+* **Framework:** Next.js (App Router)
+* **Infrastructure:** Vercel (background processing via `waitUntil`)
+* **BaaS (DB / Auth):** Supabase (PostgreSQL, GoTrue Auth)
+* **AI:** Gemini API (default model: `gemini-3.1-flash-light`)
+  * **BYOK (Bring Your Own Key):** the user supplies their own API key.
+* **Scraping:** `@mozilla/readability`, `jsdom`
 
-## **3\. データベース設計**
+## **3\. Database Design**
 
-Supabase (PostgreSQL) のリレーショナル構造と RLS を最大限に活用する。
+Lean on Supabase (PostgreSQL) relational structure and RLS as much as
+possible.
 
-### **3.1 テーブル定義**
+### **3.1 Table definitions**
 
-**1\. profiles** (Supabase Auth連動)
+**1. `profiles`** (linked to Supabase Auth)
 
-| カラム名 | データ型 | 説明 |
+| Column | Type | Description |
 | :---- | :---- | :---- |
-| id | UUID (PK) | ユーザーID (Authと同一) |
-| email | TEXT | メールアドレス |
-| created\_at | TIMESTAMP | 作成日時 |
+| `id` | UUID (PK) | User ID (same as Auth) |
+| `email` | TEXT | Email address |
+| `created_at` | TIMESTAMP | Created at |
 
-**2\. user\_settings** (AI設定・BYOK)
+**2. `user_settings`** (AI settings, BYOK)
 
-| カラム名 | データ型 | 説明 |
+| Column | Type | Description |
 | :---- | :---- | :---- |
-| user\_id | UUID (PK) | ユーザーID |
-| ai\_provider | TEXT | デフォルト: 'gemini' |
-| ai\_model | TEXT | デフォルト: 'gemini-3.1-flash-light' |
-| encrypted\_api\_key | TEXT | アプリ側で暗号化されたAPIキー |
-| ai\_summary\_language | TEXT | デフォルト: 'Japanese' |
-| ai\_custom\_prompt | TEXT | ユーザーのカスタムプロンプト |
+| `user_id` | UUID (PK) | User ID |
+| `ai_provider` | TEXT | Default: `'gemini'` |
+| `ai_model` | TEXT | Default: `'gemini-3.1-flash-light'` |
+| `encrypted_api_key` | TEXT | API key encrypted on the application side |
+| `ai_summary_language` | TEXT | Default: `'Japanese'` |
+| `ai_custom_prompt` | TEXT | User's custom prompt |
 
-**3\. personal\_access\_tokens** (外部ツール認証用 PAT)
+**3. `personal_access_tokens`** (PAT for external tools)
 
-| カラム名 | データ型 | 説明 |
+| Column | Type | Description |
 | :---- | :---- | :---- |
-| id | UUID (PK) | トークンID (JWTの jti と一致) |
-| user\_id | UUID | 所有ユーザーID |
-| name | TEXT | 識別名 (例: "iOS Shortcuts") |
-| expires\_at | TIMESTAMP | 有効期限 |
-| last\_used\_at | TIMESTAMP | 最終利用日時 |
+| `id` | UUID (PK) | Token ID (matches the JWT's `jti`) |
+| `user_id` | UUID | Owner user ID |
+| `name` | TEXT | Display name (e.g. `"iOS Shortcuts"`) |
+| `expires_at` | TIMESTAMP | Expiry |
+| `last_used_at` | TIMESTAMP | Last-used timestamp |
 
-**4\. items** (コンテンツ本体・ステータス管理)
+**4. `items`** (content + status management)
 
-| カラム名 | データ型 | 説明 |
+| Column | Type | Description |
 | :---- | :---- | :---- |
-| id | UUID (PK) | アイテムID |
-| user\_id | UUID | 所有ユーザーID |
-| url | TEXT | 記事URL |
-| title | TEXT | ページタイトル |
-| content\_text | TEXT | 抽出された本文 (Readability) |
-| summary\_short | TEXT | 【リスト用】AIによる1〜2行要約 |
-| summary\_long | TEXT | 【詳細用】AIによる箇条書き詳細要約 |
-| process\_status | TEXT | 処理状態 ('pending', 'processing', 'completed', 'failed') |
-| error\_message | TEXT | 処理失敗時のエラー内容 |
-| source\_type | TEXT | 出所 ('bookmark' または 'rss') |
-| is\_read | BOOLEAN | 既読(アーカイブ)フラグ。デフォルト FALSE |
+| `id` | UUID (PK) | Item ID |
+| `user_id` | UUID | Owner user ID |
+| `url` | TEXT | Article URL |
+| `title` | TEXT | Page title |
+| `content_text` | TEXT | Extracted body (via Readability) |
+| `summary_short` | TEXT | [for the list view] 1–2 line AI summary |
+| `summary_long` | TEXT | [for the detail view] bulleted AI summary |
+| `process_status` | TEXT | Processing state (`'pending'`, `'processing'`, `'completed'`, `'failed'`) |
+| `error_message` | TEXT | Error detail when processing failed |
+| `source_type` | TEXT | Origin (`'bookmark'` or `'rss'`) |
+| `is_read` | BOOLEAN | Read/archived flag. Default `FALSE` |
 
-**5\. tags & item\_tags** (タグ管理)
+**5. `tags` & `item_tags`** (tag management)
 
-* **tags:** id, user\_id, name  
-* **item\_tags:** item\_id, tag\_id (複合PK)
+* **`tags`**: `id`, `user_id`, `name`
+* **`item_tags`**: `item_id`, `tag_id` (composite PK)
 
-### **3.2 DDL・RLS・トリガーの完全なSQLスクリプト**
+### **3.2 Full DDL / RLS / trigger SQL**
 
-\-- テーブル作成  
-CREATE TABLE profiles (  
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,  
-  email TEXT,  
-  created\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()  
+```sql
+-- Tables
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE user\_settings (  
-  user\_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,  
-  ai\_provider TEXT DEFAULT 'gemini',  
-  ai\_model TEXT DEFAULT 'gemini-3.1-flash-light',  
-  encrypted\_api\_key TEXT,  
-  ai\_summary\_language TEXT DEFAULT 'Japanese',  
-  ai\_custom\_prompt TEXT,  
-  updated\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()  
+CREATE TABLE user_settings (
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  ai_provider TEXT DEFAULT 'gemini',
+  ai_model TEXT DEFAULT 'gemini-3.1-flash-light',
+  encrypted_api_key TEXT,
+  ai_summary_language TEXT DEFAULT 'Japanese',
+  ai_custom_prompt TEXT,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE personal\_access\_tokens (  
-  id UUID PRIMARY KEY DEFAULT uuid\_generate\_v4(),  
-  user\_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,  
-  name TEXT NOT NULL,  
-  expires\_at TIMESTAMP WITH TIME ZONE,  
-  last\_used\_at TIMESTAMP WITH TIME ZONE,  
-  created\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()  
+CREATE TABLE personal_access_tokens (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  expires_at TIMESTAMP WITH TIME ZONE,
+  last_used_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE feeds (  
-  id UUID PRIMARY KEY DEFAULT uuid\_generate\_v4(),  
-  user\_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,  
-  xml\_url TEXT NOT NULL,  
-  site\_url TEXT,  
-  title TEXT,  
-  last\_fetched\_at TIMESTAMP WITH TIME ZONE,  
-  created\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  
-  UNIQUE(user\_id, xml\_url)  
+CREATE TABLE feeds (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  xml_url TEXT NOT NULL,
+  site_url TEXT,
+  title TEXT,
+  last_fetched_at TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, xml_url)
 );
 
-CREATE TABLE items (  
-  id UUID PRIMARY KEY DEFAULT uuid\_generate\_v4(),  
-  user\_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,  
-  url TEXT NOT NULL,  
-  title TEXT,  
-  content\_text TEXT,  
-  summary\_short TEXT,  
-  summary\_long TEXT,  
-  process\_status TEXT DEFAULT 'pending' CHECK (process\_status IN ('pending', 'processing', 'completed', 'failed')),  
-  error\_message TEXT,  
-  source\_type TEXT NOT NULL CHECK (source\_type IN ('bookmark', 'rss')),  
-  feed\_id UUID REFERENCES feeds(id) ON DELETE SET NULL,  
-  is\_read BOOLEAN DEFAULT FALSE,  
-  is\_archived BOOLEAN DEFAULT FALSE,  
-  saved\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  
-  created\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  
-  UNIQUE(user\_id, url)  
+CREATE TABLE items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  url TEXT NOT NULL,
+  title TEXT,
+  content_text TEXT,
+  summary_short TEXT,
+  summary_long TEXT,
+  process_status TEXT DEFAULT 'pending' CHECK (process_status IN ('pending', 'processing', 'completed', 'failed')),
+  error_message TEXT,
+  source_type TEXT NOT NULL CHECK (source_type IN ('bookmark', 'rss')),
+  feed_id UUID REFERENCES feeds(id) ON DELETE SET NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  is_archived BOOLEAN DEFAULT FALSE,
+  saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, url)
 );
 
-CREATE TABLE tags (  
-  id UUID PRIMARY KEY DEFAULT uuid\_generate\_v4(),  
-  user\_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,  
-  name TEXT NOT NULL,  
-  created\_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),  
-  UNIQUE(user\_id, name)  
+CREATE TABLE tags (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, name)
 );
 
-CREATE TABLE item\_tags (  
-  item\_id UUID REFERENCES items(id) ON DELETE CASCADE NOT NULL,  
-  tag\_id UUID REFERENCES tags(id) ON DELETE CASCADE NOT NULL,  
-  PRIMARY KEY (item\_id, tag\_id)  
+CREATE TABLE item_tags (
+  item_id UUID REFERENCES items(id) ON DELETE CASCADE NOT NULL,
+  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE NOT NULL,
+  PRIMARY KEY (item_id, tag_id)
 );
 
-\-- RLS (Row Level Security) 設定  
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE user\_settings ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE personal\_access\_tokens ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE feeds ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE items ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE tags ENABLE ROW LEVEL SECURITY;  
-ALTER TABLE item\_tags ENABLE ROW LEVEL SECURITY;
+-- Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE personal_access_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feeds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_tags ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() \= id);  
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() \= id);  
-CREATE POLICY "Users can manage own settings" ON user\_settings FOR ALL USING (auth.uid() \= user\_id);  
-CREATE POLICY "Users can manage own tokens" ON personal\_access\_tokens FOR ALL USING (auth.uid() \= user\_id);  
-CREATE POLICY "Users can manage own feeds" ON feeds FOR ALL USING (auth.uid() \= user\_id);  
-CREATE POLICY "Users can manage own items" ON items FOR ALL USING (auth.uid() \= user\_id);  
-CREATE POLICY "Users can manage own tags" ON tags FOR ALL USING (auth.uid() \= user\_id);  
-CREATE POLICY "Users can manage own item\_tags" ON item\_tags FOR ALL   
-USING (EXISTS (SELECT 1 FROM items WHERE items.id \= item\_tags.item\_id AND items.user\_id \= auth.uid()));
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can manage own settings" ON user_settings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own tokens" ON personal_access_tokens FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own feeds" ON feeds FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own items" ON items FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own tags" ON tags FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Users can manage own item_tags" ON item_tags FOR ALL
+USING (EXISTS (SELECT 1 FROM items WHERE items.id = item_tags.item_id AND items.user_id = auth.uid()));
 
-\-- Auth連動トリガー (新規登録時にプロフィールと設定を自動生成)  
-CREATE OR REPLACE FUNCTION public.handle\_new\_user()  
-RETURNS trigger AS $$  
-BEGIN  
-  INSERT INTO public.profiles (id, email) VALUES (new.id, new.email);  
-  INSERT INTO public.user\_settings (user\_id) VALUES (new.id);  
-  RETURN new;  
-END;  
+-- Auth-linked trigger: on signup, auto-create the profile and the settings row.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email) VALUES (new.id, new.email);
+  INSERT INTO public.user_settings (user_id) VALUES (new.id);
+  RETURN new;
+END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER on\_auth\_user\_created  
-  AFTER INSERT ON auth.users  
-  FOR EACH ROW EXECUTE PROCEDURE public.handle\_new\_user();
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+```
 
-## **4\. API & データフロー設計**
+## **4\. API & Data-flow Design**
 
-### **4.1 認証戦略 (ハイブリッド)**
+### **4.1 Authentication strategy (hybrid)**
 
-* **Web UI:** Supabase標準のCookieセッション。  
-* **外部ツール (iOS Shortcuts, CLI, ブックマークレット):** JWTベースの Personal Access Token (PAT) 認証。  
-  * Authorization: Bearer \<JWT\> で送信。  
-  * API側で JWT\_SECRET を用いて署名と期限(exp)を検証。  
-  * DBの personal\_access\_tokens テーブルで jti を照合し、失効（Revoke）されていないか確認。
+* **Web UI:** standard Supabase cookie session.
+* **External tools (iOS Shortcuts, CLI, bookmarklet):** JWT-based
+  Personal Access Token (PAT) auth.
+  * Sent as `Authorization: Bearer <JWT>`.
+  * The API verifies the signature and expiry (`exp`) using
+    `JWT_SECRET`.
+  * The `jti` claim is matched against the `personal_access_tokens`
+    table to confirm the token has not been revoked.
 
-### **4.2 コアAPI: POST /api/bookmarks の非同期フロー**
+### **4.2 Core API: `POST /api/bookmarks` async flow**
 
-**目的:** ユーザーの入力体験(UX)をブロックせず、重いAI処理を裏側で行う。
+**Goal:** never block the user's input UX (UI), and run the heavy AI
+processing in the background.
 
-1. **リクエスト受信:** URLとPATを受け取る。(※CORS対応を実装しブックマークレットを許可)  
-2. **即時DB登録 (同期):** URLを items に INSERT (process\_status: 'pending').  
-3. **即時応答:** 200 OK をクライアントへ返却。  
-4. **バックグラウンド処理 (Vercel waitUntil):**  
-   * **ステータス更新:** 'processing' へ。  
-   * **スクレイピング:** Readability で本文(content\_text)抽出。  
-   * **AI要約:** サーバー側のマスターキーで user\_settings.encrypted\_api\_key を復号。  
-   * **プロンプト合成:** 「システム命令 \+ ai\_custom\_prompt \+ 出力言語(ai\_summary\_language)」を合成し、JSONフォーマットでリクエスト。  
-   * **DB更新:** summary\_short, summary\_long, tags を保存し、process\_status を 'completed' へ。  
-   * **エラー処理:** 失敗時は 'failed' にし、error\_message を記録。
+1. **Receive the request:** accept a URL and a PAT. (Implement CORS so
+   the bookmarklet is allowed.)
+2. **Immediate DB insert (sync):** insert into `items` with
+   `process_status: 'pending'`.
+3. **Immediate response:** return `200 OK` to the client.
+4. **Background processing (Vercel `waitUntil`):**
+   * **Update status:** flip to `'processing'`.
+   * **Scrape:** extract the body (`content_text`) with Readability.
+   * **AI summarise:** decrypt `user_settings.encrypted_api_key` with
+     the server-side master key.
+   * **Compose the prompt:** combine the system instruction +
+     `ai_custom_prompt` + output language (`ai_summary_language`) and
+     request a JSON-formatted response.
+   * **DB update:** persist `summary_short`, `summary_long`, and tags,
+     then flip `process_status` to `'completed'`.
+   * **Error handling:** on failure, set it to `'failed'` and record
+     the error in `error_message`.
 
-### **4.3 エンドポイント一覧**
+### **4.3 Endpoint list**
 
-* POST /api/bookmarks: URL保存 (非同期)  
-* GET /api/items: アイテム一覧取得  
-* POST /api/items/\[id\]/retry: 失敗した要約の再試行  
-* PUT /api/items/\[id\]/read: アイテムの既読化(アーカイブ)  
-* GET, POST, DELETE /api/tokens: PATの管理  
-* GET, PUT /api/settings: ユーザー設定・AI設定の管理
+* `POST /api/bookmarks` — save a URL (async)
+* `GET /api/items` — list items
+* `POST /api/items/[id]/retry` — retry a failed summary
+* `PUT /api/items/[id]/read` — mark an item read (archive)
+* `GET`, `POST`, `DELETE /api/tokens` — manage PATs
+* `GET`, `PUT /api/settings` — manage user settings & AI settings
 
-## **5\. Web UI/UX・機能仕様**
+## **5\. Web UI/UX & Feature Spec**
 
-### **A. オンボーディング**
+### **A. Onboarding**
 
-* Googleログイン後、APIキーが未設定の場合はSettings画面へ誘導する。
+* After signing in with Google, if no API key is configured, route the
+  user to the Settings screen.
 
-### **B. ダッシュボード (Inbox)**
+### **B. Dashboard (Inbox)**
 
-* **目的:** 受信箱を空にする (Inbox Zero)。  
-* **表示:** リスト形式。タイトル、ソース、1行要約(summary\_short)、ステータス（処理中スピナー/失敗アイコン）。  
-* **操作:**  
-  * 「＋」ボタンでURL手動追加モーダル。  
-  * 「既読（チェック）」ボタンでリストから消す（アーカイブ）。  
-  * 失敗アイコンから「再試行」をクリック。
+* **Goal:** keep the inbox empty (Inbox Zero).
+* **Display:** list format. Title, source, one-line summary
+  (`summary_short`), status (in-progress spinner / failure icon).
+* **Actions:**
+  * The "+" button opens a modal for manually adding a URL.
+  * The "read (check)" button removes the row from the list (archive).
+  * The failure icon offers "retry".
 
-### **C. リーディングビュー (詳細)**
+### **C. Reading View (detail)**
 
-* **表示:** 詳細要約(summary\_long)と抽出されたクリーンな本文(content\_text)。  
-* **操作:**  
-  * ブラウザ標準のWeb Speech APIによる「音声読み上げ（再生/停止）」。  
-  * タグの追加・編集。  
-  * 「元記事を開く」リンク。
+* **Display:** detailed summary (`summary_long`) and the cleaned
+  extracted body (`content_text`).
+* **Actions:**
+  * "Read aloud (play / stop)" via the browser-standard Web Speech API.
+  * Add / edit tags.
+  * "Open original article" link.
 
-### **D. 設定画面 (Settings)**
+### **D. Settings**
 
-* **AI設定:** プロバイダ、モデル、APIキー入力、出力言語、カスタム指示。  
-* **PAT管理 & ブックマークレット生成:**  
-  * 用途を入力してPATを発行。  
-  * 発行と同時に「Swishへ保存」という名前のブックマークレット用リンクがUI上に生成される。  
-  * ユーザーはこれをブックマークバーにドラッグ＆ドロップするだけでPC用の保存環境が完成する。  
-  * ゴミ箱アイコンでPATを無効化。
+* **AI settings:** provider, model, API-key input, output language,
+  custom instructions.
+* **PAT management & bookmarklet generation:**
+  * Enter a purpose and issue a PAT.
+  * As soon as the PAT is issued, a bookmarklet link named "Save to
+    Swish" is rendered in the UI.
+  * The user only has to drag-and-drop it onto the bookmarks bar to
+    finish setting up the PC save flow.
+  * A trash icon revokes the PAT.
 
-## **6\. 実装ロードマップ**
+## **6\. Implementation Roadmap**
 
-* **Phase 1:** Supabase構築（DDL/RLS実行）、Next.js初期化、Googleログイン実装。  
-* **Phase 2:** Settings画面（APIキー暗号化、PAT発行）、API(POST /api/bookmarks)の非同期・AIパイプライン実装。  
-* **Phase 3:** Dashboard（リスト表示、ステータス管理）とReading View（音声読み上げ）の実装。  
-* **Phase 4:** ブックマークレット生成、iOSショートカット設定、(将来的に) RSS対応。
+* **Phase 1:** Set up Supabase (run DDL / RLS), initialise Next.js,
+  implement Google login.
+* **Phase 2:** Settings screen (API-key encryption, PAT issuance),
+  async AI pipeline for `POST /api/bookmarks`.
+* **Phase 3:** Dashboard (list view, status handling) and Reading View
+  (read-aloud) implementation.
+* **Phase 4:** Bookmarklet generation, iOS Shortcut setup, (later) RSS
+  support.

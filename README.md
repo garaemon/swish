@@ -13,9 +13,6 @@ swish/
 └── Project Blueprint_ Swish.md
 ```
 
-Each subsequent PR adds one layer (Supabase migrations, env loader, auth, pipeline, web UI, CLI, …). The reference branch
-[`2026.05.16-swish-poc`](https://github.com/garaemon/swish/tree/2026.05.16-swish-poc) shows the complete intended state.
-
 ## Prerequisites (for the eventual full stack)
 
 - Node.js 22+
