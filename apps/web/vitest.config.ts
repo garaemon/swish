@@ -2,8 +2,8 @@
 // in a later PR with their own config; the exclude below is set up here
 // so a future `__tests__/integration` folder is automatically kept out of
 // the unit run.
-import { defineConfig } from 'vitest/config'
-import path from 'node:path'
+import { defineConfig } from 'vitest/config';
+import path from 'node:path';
 
 export default defineConfig({
   resolve: {
@@ -17,4 +17,4 @@ export default defineConfig({
     exclude: ['__tests__/**/integration/**'],
     globals: false,
   },
-})
+});

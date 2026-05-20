@@ -8,7 +8,7 @@
  * lib/crypto/master-key.ts where the buffer is actually decoded — here we
  * only ensure it is non-empty.
  */
-import { z } from 'zod'
+import { z } from 'zod';
 
 const ServerEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
@@ -20,18 +20,18 @@ const ServerEnvSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   NEXT_PUBLIC_APP_URL: z.url(),
   GEMINI_API_ENDPOINT: z.url().optional(),
-})
+});
 
 const PublicEnvSchema = ServerEnvSchema.pick({
   NEXT_PUBLIC_SUPABASE_URL: true,
   NEXT_PUBLIC_SUPABASE_ANON_KEY: true,
   NEXT_PUBLIC_APP_URL: true,
-})
+});
 
-export type ServerEnv = z.infer<typeof ServerEnvSchema>
-export type PublicEnv = z.infer<typeof PublicEnvSchema>
+export type ServerEnv = z.infer<typeof ServerEnvSchema>;
+export type PublicEnv = z.infer<typeof PublicEnvSchema>;
 
-let cachedEnv: ServerEnv | undefined
+let cachedEnv: ServerEnv | undefined;
 
 /**
  * Reads and validates the server-side environment.
@@ -39,16 +39,18 @@ let cachedEnv: ServerEnv | undefined
  * Cached for subsequent calls within the same process.
  */
 export function getServerEnv(): ServerEnv {
-  if (cachedEnv) return cachedEnv
-  const parsed = ServerEnvSchema.safeParse(process.env)
+  if (cachedEnv) {
+    return cachedEnv;
+  }
+  const parsed = ServerEnvSchema.safeParse(process.env);
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`Invalid server environment:\n${issues}`)
+      .join('\n');
+    throw new Error(`Invalid server environment:\n${issues}`);
   }
-  cachedEnv = parsed.data
-  return cachedEnv
+  cachedEnv = parsed.data;
+  return cachedEnv;
 }
 
 /**
@@ -61,19 +63,19 @@ export function getPublicEnv(): PublicEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  })
+  });
   if (!parsed.success) {
     const issues = parsed.error.issues
       .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`Invalid public environment:\n${issues}`)
+      .join('\n');
+    throw new Error(`Invalid public environment:\n${issues}`);
   }
-  return parsed.data
+  return parsed.data;
 }
 
 /**
  * Re-reads the environment on next access. Tests use this between cases.
  */
 export function resetServerEnvCache(): void {
-  cachedEnv = undefined
+  cachedEnv = undefined;
 }

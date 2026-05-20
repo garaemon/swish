@@ -14,5 +14,5 @@ export default function Home(): React.JSX.Element {
         </p>
       </div>
     </main>
-  )
+  );
 }
