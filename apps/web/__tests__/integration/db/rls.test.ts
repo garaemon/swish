@@ -1,6 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { Client } from 'pg'
-import { connectLocalPg } from '../../helpers/pg'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Client } from 'pg';
+import { connectLocalPg } from '../../helpers/pg';
 
 const RLS_TABLES = [
   'feeds',
@@ -10,18 +10,18 @@ const RLS_TABLES = [
   'profiles',
   'tags',
   'user_settings',
-] as const
+] as const;
 
 describe('row level security', () => {
-  let pg: Client
+  let pg: Client;
 
   beforeAll(async () => {
-    pg = await connectLocalPg()
-  })
+    pg = await connectLocalPg();
+  });
 
   afterAll(async () => {
-    await pg.end()
-  })
+    await pg.end();
+  });
 
   it('every Swish table has RLS enabled', async () => {
     const { rows } = await pg.query<{
@@ -34,12 +34,12 @@ describe('row level security', () => {
          and tablename = any($1::text[])
        order by tablename`,
       [RLS_TABLES as unknown as string[]],
-    )
-    expect(rows).toHaveLength(RLS_TABLES.length)
+    );
+    expect(rows).toHaveLength(RLS_TABLES.length);
     for (const row of rows) {
-      expect(row.rowsecurity, `${row.tablename} should have RLS on`).toBe(true)
+      expect(row.rowsecurity, `${row.tablename} should have RLS on`).toBe(true);
     }
-  })
+  });
 
   it('every protected table has at least one policy', async () => {
     const { rows } = await pg.query<{
@@ -50,12 +50,12 @@ describe('row level security', () => {
        from pg_policies
        where schemaname = 'public'
        group by tablename`,
-    )
+    );
     const byTable = new Map(
       rows.map((row) => [row.tablename, Number(row.policy_count)]),
-    )
+    );
     for (const tableName of RLS_TABLES) {
-      expect(byTable.get(tableName) ?? 0).toBeGreaterThanOrEqual(1)
+      expect(byTable.get(tableName) ?? 0).toBeGreaterThanOrEqual(1);
     }
-  })
-})
+  });
+});
