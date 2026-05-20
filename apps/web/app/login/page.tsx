@@ -1,15 +1,17 @@
-import type { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth/session'
-import { LoginForm } from './_components/login-form'
+import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { getSessionUser } from '@/lib/auth/session';
+import { LoginForm } from './_components/login-form';
 
 export const metadata: Metadata = {
   title: 'Sign in — Swish',
-}
+};
 
 export default async function LoginPage(): Promise<React.JSX.Element> {
-  const user = await getSessionUser()
-  if (user) redirect('/dashboard')
+  const user = await getSessionUser();
+  if (user) {
+    redirect('/dashboard');
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-zinc-950">
@@ -21,5 +23,5 @@ export default async function LoginPage(): Promise<React.JSX.Element> {
         <LoginForm />
       </div>
     </main>
-  )
+  );
 }

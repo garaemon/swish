@@ -1,4 +1,4 @@
-import { getSessionUser } from './session'
+import { getSessionUser } from './session';
 
 export type AuthedUser = {
   userId: string
@@ -11,12 +11,12 @@ export type AuthedUser = {
  * without rebuilding the JSON body.
  */
 export class UnauthorizedError extends Error {
-  readonly response: Response
+  readonly response: Response;
 
   constructor(message = 'unauthorized') {
-    super(message)
-    this.name = 'UnauthorizedError'
-    this.response = Response.json({ error: 'unauthorized' }, { status: 401 })
+    super(message);
+    this.name = 'UnauthorizedError';
+    this.response = Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 }
 
@@ -26,7 +26,9 @@ export class UnauthorizedError extends Error {
  * only.
  */
 export async function requireUser(_req: Request): Promise<AuthedUser> {
-  const user = await getSessionUser()
-  if (!user) throw new UnauthorizedError()
-  return { userId: user.userId, via: 'cookie' }
+  const user = await getSessionUser();
+  if (!user) {
+    throw new UnauthorizedError();
+  }
+  return { userId: user.userId, via: 'cookie' };
 }

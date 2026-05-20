@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth/session'
+import { redirect } from 'next/navigation';
+import { getSessionUser } from '@/lib/auth/session';
 
 /**
  * Root route. proxy.ts treats "/" as a protected path (the matcher only
@@ -9,6 +9,6 @@ import { getSessionUser } from '@/lib/auth/session'
  * everyone else still falls through to /login.
  */
 export default async function Home(): Promise<never> {
-  const user = await getSessionUser()
-  redirect(user ? '/dashboard' : '/login')
+  const user = await getSessionUser();
+  redirect(user ? '/dashboard' : '/login');
 }

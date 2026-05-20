@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type SessionUser = {
   userId: string
@@ -11,12 +11,14 @@ export type SessionUser = {
  * or null if no session is present.
  */
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const supabase = await createSupabaseServerClient()
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return null
-  return { userId: user.id, email: user.email ?? null }
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return null;
+  }
+  return { userId: user.id, email: user.email ?? null };
 }
 
 /**
@@ -24,7 +26,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
  * the user id. Redirects to /login otherwise (terminating the request).
  */
 export async function requireSessionUserId(): Promise<string> {
-  const user = await getSessionUser()
-  if (!user) redirect('/login')
-  return user.userId
+  const user = await getSessionUser();
+  if (!user) {
+    redirect('/login');
+  }
+  return user.userId;
 }

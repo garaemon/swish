@@ -1,39 +1,39 @@
-'use client'
+'use client';
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export function LoginForm(): React.JSX.Element {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
-    setError(null)
-    setSubmitting(true)
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
     try {
-      const supabase = createSupabaseBrowserClient()
+      const supabase = createSupabaseBrowserClient();
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
       if (signInError) {
-        setError(signInError.message)
-        return
+        setError(signInError.message);
+        return;
       }
-      router.replace('/dashboard')
-      router.refresh()
+      router.replace('/dashboard');
+      router.refresh();
     } catch (cause) {
       // signInWithPassword normally returns errors via `signInError`, but
       // a network drop or runtime fault would otherwise escape to the error
       // boundary and freeze the page. Surface the message inline instead.
-      setError(cause instanceof Error ? cause.message : 'unexpected sign-in error')
+      setError(cause instanceof Error ? cause.message : 'unexpected sign-in error');
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
   }
 
@@ -74,5 +74,5 @@ export function LoginForm(): React.JSX.Element {
         {submitting ? 'Signing in…' : 'Sign in'}
       </button>
     </form>
-  )
+  );
 }
