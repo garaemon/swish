@@ -1,15 +1,15 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest';
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 async function isDevServerUp(): Promise<boolean> {
   try {
     const response = await fetch(`${APP_URL}/api/health`, {
       signal: AbortSignal.timeout(2000),
-    })
-    return response.ok
+    });
+    return response.ok;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -18,26 +18,30 @@ async function isDevServerUp(): Promise<boolean> {
 // then this suite inlines the probe and emits a console.warn when the dev
 // server is unreachable so the skip is not silent.
 describe('proxy', () => {
-  let devUp = false
+  let devUp = false;
 
   beforeAll(async () => {
-    devUp = await isDevServerUp()
+    devUp = await isDevServerUp();
     if (!devUp) {
-      console.warn(`SKIP proxy.test.ts: dev server unreachable at ${APP_URL}`)
+      console.warn(`SKIP proxy.test.ts: dev server unreachable at ${APP_URL}`);
     }
-  })
+  });
 
   it('redirects unauthenticated requests for protected paths to /login', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/dashboard`, { redirect: 'manual' })
-    expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toContain('/login')
-  })
+    if (!devUp) {
+      return;
+    }
+    const response = await fetch(`${APP_URL}/dashboard`, { redirect: 'manual' });
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toContain('/login');
+  });
 
   it('/api/health responds 200 without redirect (proxy matcher excludes /api)', async () => {
-    if (!devUp) return
-    const response = await fetch(`${APP_URL}/api/health`, { redirect: 'manual' })
-    expect(response.status).toBe(200)
-    expect(response.headers.get('location')).toBeNull()
-  })
-})
+    if (!devUp) {
+      return;
+    }
+    const response = await fetch(`${APP_URL}/api/health`, { redirect: 'manual' });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+});
