@@ -2,7 +2,7 @@
 
 Personal RSS / bookmark manager focused on Inbox Zero. Built with Next.js + Supabase + Gemini, designed to run locally during development and deploy to Supabase Cloud + Vercel without code changes.
 
-See [`Project Blueprint_ Swish.md`](Project%20Blueprint_%20Swish.md) for the full design and [issue #1](https://github.com/garaemon/swish/issues/1) for the PR roadmap landing this on `main` in reviewable slices.
+See [`Project_Blueprint_Swish.md`](Project_Blueprint_Swish.md) for the full design and [issue #1](https://github.com/garaemon/swish/issues/1) for the PR roadmap landing this on `main` in reviewable slices.
 
 ## Repository layout
 
@@ -10,7 +10,7 @@ See [`Project Blueprint_ Swish.md`](Project%20Blueprint_%20Swish.md) for the ful
 swish/
 ├── package.json           workspace root
 ├── pnpm-workspace.yaml    apps/* + packages/*
-└── Project Blueprint_ Swish.md
+└── Project_Blueprint_Swish.md
 ```
 
 ## Prerequisites (for the eventual full stack)
