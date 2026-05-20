@@ -1,0 +1,13 @@
+{
+  "name": "swish",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Personal RSS / bookmark manager focused on Inbox Zero",
+  "license": "MIT",
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "build": "pnpm -r build"
+  }
+}
