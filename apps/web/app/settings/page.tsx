@@ -7,8 +7,10 @@ import {
 } from '@swish/shared/defaults';
 import { Nav } from '@/app/_components/nav';
 import { getSessionUser } from '@/lib/auth/session';
+import { getServerEnv } from '@/lib/env';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { AiSettingsForm } from './_components/ai-settings-form';
+import { TokenList, type TokenRow } from './_components/token-list';
 
 export const metadata: Metadata = {
   title: 'Settings — Swish',
@@ -29,11 +31,18 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const settingsRow = await supabase
-    .from('user_settings')
-    .select('ai_provider, ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
-    .eq('user_id', user.userId)
-    .maybeSingle();
+  const [settingsRow, tokenRows] = await Promise.all([
+    supabase
+      .from('user_settings')
+      .select('ai_provider, ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
+      .eq('user_id', user.userId)
+      .maybeSingle(),
+    supabase
+      .from('personal_access_tokens')
+      .select('id, name, created_at, expires_at, last_used_at')
+      .eq('user_id', user.userId)
+      .order('created_at', { ascending: false }),
+  ]);
 
   const settings: LoadedSettings = {
     aiProvider: settingsRow.data?.ai_provider ?? DEFAULT_AI_PROVIDER,
@@ -43,6 +52,23 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
     aiCustomPrompt: settingsRow.data?.ai_custom_prompt ?? null,
     hasApiKey: Boolean(settingsRow.data?.encrypted_api_key),
   };
+
+  type TokenSelectRow = {
+    id: string
+    name: string
+    created_at: string
+    expires_at: string | null
+    last_used_at: string | null
+  }
+  const tokens: TokenRow[] = ((tokenRows.data ?? []) as TokenSelectRow[]).map((row) => ({
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at,
+    expiresAt: row.expires_at,
+    lastUsedAt: row.last_used_at,
+  }));
+
+  const apiUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
 
   return (
     <>
@@ -60,8 +86,16 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
           <AiSettingsForm initial={settings} />
         </section>
 
-        {/* Personal access tokens + bookmarklet + iOS Shortcut panel
-            land in subsequent PRs. */}
+        <section>
+          <h2 className="mb-3 text-xl font-medium">Personal access tokens</h2>
+          <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
+            Issue a token to authenticate the CLI, the bookmarklet, or an iOS Shortcut.
+            Tokens are shown once — store them in a password manager.
+          </p>
+          <TokenList initial={tokens} apiUrl={apiUrl} />
+        </section>
+
+        {/* iOS Shortcut setup lands in the next PR. */}
       </main>
     </>
   );
