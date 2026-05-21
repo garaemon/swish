@@ -15,6 +15,10 @@ const eslintConfig = defineConfig([
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      semi: ["error", "always"],
+      curly: ["error", "all"],
+      "brace-style": ["error", "1tbs", { allowSingleLine: false }],
+      indent: ["error", 2, { SwitchCase: 1 }],
     },
   },
   // Exclude Next.js build artifacts and the auto-generated next-env.d.ts
