@@ -68,7 +68,7 @@ describe('handle_new_user trigger', () => {
     expect(rows[0]).toMatchObject({
       ai_provider: 'gemini',
       ai_model: 'gemini-2.5-flash',
-      ai_summary_language: 'Japanese',
+      ai_summary_language: 'English',
       encrypted_api_key: null,
     });
   });

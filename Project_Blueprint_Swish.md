@@ -55,7 +55,7 @@ possible.
 | `ai_provider` | TEXT | Default: `'gemini'` |
 | `ai_model` | TEXT | Default: `'gemini-3.1-flash-light'` |
 | `encrypted_api_key` | TEXT | API key encrypted on the application side |
-| `ai_summary_language` | TEXT | Default: `'Japanese'` |
+| `ai_summary_language` | TEXT | Default: `'English'` |
 | `ai_custom_prompt` | TEXT | User's custom prompt |
 
 **3. `personal_access_tokens`** (PAT for external tools)
@@ -104,7 +104,7 @@ CREATE TABLE user_settings (
   ai_provider TEXT DEFAULT 'gemini',
   ai_model TEXT DEFAULT 'gemini-3.1-flash-light',
   encrypted_api_key TEXT,
-  ai_summary_language TEXT DEFAULT 'Japanese',
+  ai_summary_language TEXT DEFAULT 'English',
   ai_custom_prompt TEXT,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

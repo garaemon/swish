@@ -23,7 +23,7 @@ create table public.user_settings (
   -- lib/crypto/aes.ts (`v1:iv:ct:tag`). It is never decrypted at rest;
   -- only the pipeline that needs to call the model reads it.
   encrypted_api_key text,
-  ai_summary_language text default 'Japanese',
+  ai_summary_language text default 'English',
   ai_custom_prompt text,
   updated_at timestamp with time zone default now()
 );
