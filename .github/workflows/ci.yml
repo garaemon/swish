@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: lint + unit + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm test
+
+      # next build evaluates page modules; getServerEnv() is lazy, but the
+      # zod schema runs as soon as any request-time code is touched during
+      # static analysis. Provide schema-satisfying placeholders so the
+      # build does not fail for reasons unrelated to the change under test.
+      - name: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+          MASTER_KEY: ci-master-key-placeholder
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+        run: pnpm build
