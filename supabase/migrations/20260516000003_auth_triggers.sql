@@ -5,6 +5,13 @@
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
+-- security definer runs the body as the function owner (postgres / migration
+-- runner), not the caller (supabase_auth_admin). The caller has no direct
+-- INSERT grant on public.profiles or public.user_settings, and RLS on those
+-- tables would block writes from auth.uid() = null at signup time — security
+-- definer bypasses both. set search_path = public is the standard hardening
+-- that pairs with it: pin the schema lookup so a search_path attack cannot
+-- redirect the inserts to a malicious same-named table.
 security definer
 set search_path = public
 as $$
