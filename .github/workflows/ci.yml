@@ -40,7 +40,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
           SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
-          MASTER_KEY: ci-master-key-placeholder
+          MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
           JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: pnpm build
@@ -69,7 +69,20 @@ jobs:
       - name: supabase start
         run: supabase start
 
+      - name: export supabase env
+        run: |
+          eval "$(supabase status -o env)"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
+
       - name: integration tests
+        env:
+          # MASTER_KEY must decode to exactly 32 bytes (AES-256). The all-zero
+          # placeholder satisfies the runtime check without exposing a real key.
+          MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: pnpm --filter web test:integration
 
       - name: supabase stop
