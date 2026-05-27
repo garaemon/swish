@@ -22,8 +22,11 @@ export class UnauthorizedError extends Error {
 
 /**
  * Authenticates an incoming request via the Supabase cookie session.
- * PAT (Bearer) support is added in a later PR; this slice covers Web UI
- * only.
+ * Intended as the auth gate for protected /api/* route handlers.
+ *
+ * This PR introduces the gate itself; the first /api/* routes that consume
+ * it (and the PAT/Bearer branch that adds `via: 'pat'`) land in follow-up
+ * PRs, so the only current caller is the unit test.
  */
 export async function requireUser(_req: Request): Promise<AuthedUser> {
   const user = await getSessionUser();
