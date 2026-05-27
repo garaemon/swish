@@ -9,6 +9,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      // `server-only` throws at import time outside a Server Component. The
+      // build-time guarantee is preserved by next build; under vitest the
+      // marker is replaced with a no-op so tests can exercise server modules
+      // directly.
+      'server-only': path.resolve(__dirname, '__tests__/helpers/server-only-stub.ts'),
     },
   },
   test: {
