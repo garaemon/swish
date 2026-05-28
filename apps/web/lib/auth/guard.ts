@@ -28,6 +28,7 @@ export class UnauthorizedError extends Error {
  *   2. or the Supabase cookie session (Web UI).
  *
  * Bearer is preferred so that automated callers do not depend on cookies.
+ * Intended as the auth gate for protected /api/* route handlers.
  *
  * TODO (CSRF): cookie-authenticated state-changing API routes (PUT
  * /api/items/[id]/read, POST /api/items/[id]/retry, PUT /api/settings,
