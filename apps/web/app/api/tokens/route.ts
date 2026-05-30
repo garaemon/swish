@@ -6,7 +6,7 @@
 import type { TokenSummaryDto } from '@swish/shared';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
 import { issuePat } from '@/lib/auth/pat';
-import { getSupabaseForUser } from '@/lib/supabase/for-request';
+import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
 import { TokenCreateSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
