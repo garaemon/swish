@@ -1,6 +1,6 @@
 export const DEFAULT_AI_PROVIDER = 'gemini'
 export const DEFAULT_AI_MODEL = 'gemini-2.5-flash'
-export const DEFAULT_AI_SUMMARY_LANGUAGE = 'Japanese'
+export const DEFAULT_AI_SUMMARY_LANGUAGE = 'English'
 
 export type AiProviderOption = {
   value: string
