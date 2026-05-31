@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import type { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { connectLocalPg } from '../../helpers/pg';
+import { ProcessStatus } from '@/lib/pipeline/status';
 
 /**
  * Verifies the CHECK and UNIQUE constraints declared in migration 001 are
@@ -50,7 +51,7 @@ describe('items constraints', () => {
 
   it('accepts each of the four documented process_status values', async () => {
     const userId = await createUser(pg);
-    const validStatuses = ['pending', 'processing', 'completed', 'failed'] as const;
+    const validStatuses = Object.values(ProcessStatus);
     for (const [index, status] of validStatuses.entries()) {
       await pg.query(
         `insert into public.items (user_id, url, source_type, process_status)

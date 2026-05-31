@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { markCompleted, markFailed, markProcessing } from '@/lib/pipeline/status';
+import { markCompleted, markFailed, markProcessing, ProcessStatus } from '@/lib/pipeline/status';
 import {
   createAdminClient,
   createTestUser,
@@ -48,27 +48,27 @@ describe('pipeline status transitions', () => {
 
   it('starts in pending state', async () => {
     const row = await readStatus();
-    expect(row.status).toBe('pending');
+    expect(row.status).toBe(ProcessStatus.Pending);
   });
 
   it('markProcessing flips pending -> processing and clears error', async () => {
     await markProcessing(admin, itemId, userId);
     const row = await readStatus();
-    expect(row.status).toBe('processing');
+    expect(row.status).toBe(ProcessStatus.Processing);
     expect(row.err).toBeNull();
   });
 
   it('markFailed records the error message', async () => {
     await markFailed(admin, itemId, userId, new Error('boom'));
     const row = await readStatus();
-    expect(row.status).toBe('failed');
+    expect(row.status).toBe(ProcessStatus.Failed);
     expect(row.err).toBe('boom');
   });
 
   it('markCompleted clears the failure', async () => {
     await markCompleted(admin, itemId, userId);
     const row = await readStatus();
-    expect(row.status).toBe('completed');
+    expect(row.status).toBe(ProcessStatus.Completed);
     expect(row.err).toBeNull();
   });
 
@@ -78,7 +78,7 @@ describe('pipeline status transitions', () => {
       // Should affect zero rows; status stays at 'completed' from prior test.
       await markProcessing(admin, itemId, otherUser.id);
       const row = await readStatus();
-      expect(row.status).toBe('completed');
+      expect(row.status).toBe(ProcessStatus.Completed);
     } finally {
       await deleteTestUser(admin, otherUser.id);
     }

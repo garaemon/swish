@@ -18,6 +18,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 
+/**
+ * The legal process_status values, constrained by the CHECK constraint in the
+ * 20260516000001_init_schema.sql migration.
+ */
+export const ProcessStatus = {
+  Pending: 'pending',
+  Processing: 'processing',
+  Completed: 'completed',
+  Failed: 'failed',
+} as const;
+
+export type ProcessStatus = (typeof ProcessStatus)[keyof typeof ProcessStatus];
+
 type Client = SupabaseClient<Database>
 
 export async function markProcessing(
@@ -27,7 +40,7 @@ export async function markProcessing(
 ): Promise<void> {
   const { error } = await supabase
     .from('items')
-    .update({ process_status: 'processing', error_message: null })
+    .update({ process_status: ProcessStatus.Processing, error_message: null })
     .eq('id', itemId)
     .eq('user_id', userId);
   if (error) {
@@ -42,7 +55,7 @@ export async function markCompleted(
 ): Promise<void> {
   const { error } = await supabase
     .from('items')
-    .update({ process_status: 'completed', error_message: null })
+    .update({ process_status: ProcessStatus.Completed, error_message: null })
     .eq('id', itemId)
     .eq('user_id', userId);
   if (error) {
@@ -60,7 +73,7 @@ export async function markFailed(
     cause instanceof Error ? cause.message : typeof cause === 'string' ? cause : 'unknown error';
   const { error } = await supabase
     .from('items')
-    .update({ process_status: 'failed', error_message: message })
+    .update({ process_status: ProcessStatus.Failed, error_message: message })
     .eq('id', itemId)
     .eq('user_id', userId);
   if (error) {
