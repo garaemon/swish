@@ -8,7 +8,7 @@
 import { after } from 'next/server';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
 import { runPipeline } from '@/lib/pipeline/run';
-import { getSupabaseForUser } from '@/lib/supabase/for-request';
+import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
 
 export const runtime = 'nodejs';
 
