@@ -14,7 +14,7 @@ import {
 } from '@swish/shared/defaults';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
 import { encryptString } from '@/lib/crypto/aes';
-import { getSupabaseForUser } from '@/lib/supabase/for-request';
+import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
 import { SettingsUpdateSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
