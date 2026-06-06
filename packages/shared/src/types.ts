@@ -1,3 +1,16 @@
+export type ItemSummaryDto = {
+  id: string
+  url: string
+  title: string | null
+  summaryShort: string | null
+  summaryLong: string | null
+  processStatus: 'pending' | 'processing' | 'completed' | 'failed'
+  errorMessage: string | null
+  isRead: boolean
+  sourceType: 'bookmark' | 'rss'
+  createdAt: string
+}
+
 export type TokenSummaryDto = {
   id: string
   name: string

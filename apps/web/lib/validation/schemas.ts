@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+/** Body for POST /api/bookmarks and the dashboard addBookmark server action. */
+export const BookmarkInputSchema = z.object({
+  url: z.url(),
+  title: z.string().min(1).max(2048).optional(),
+});
+
 /** Body for POST /api/tokens. expiresInDays caps at 5 years. */
 export const TokenCreateSchema = z.object({
   name: z.string().min(1).max(64),
