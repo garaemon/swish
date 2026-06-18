@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import type { TokenIssueResponse, TokenSummaryDto } from '@swish/shared';
 import { BookmarkletLink } from './bookmarklet-link';
+import { IosShortcutSetup } from './ios-shortcut-setup';
 
 export type TokenRow = TokenSummaryDto
 
@@ -153,6 +154,7 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
           <p className="mt-1">
             <BookmarkletLink apiUrl={apiUrl} pat={justIssued.token} />
           </p>
+          <IosShortcutSetup apiUrl={apiUrl} pat={justIssued.token} />
         </div>
       ) : null}
 
