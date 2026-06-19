@@ -20,7 +20,8 @@ function configDir(): string {
   return process.env.SWISH_CONFIG_DIR || path.join(os.homedir(), '.config', 'swish');
 }
 
-function configPath(): string {
+/** Returns the absolute path the helpers below read from and write to. */
+export function configFilePath(): string {
   return path.join(configDir(), 'config.json');
 }
 
@@ -32,7 +33,7 @@ function configPath(): string {
 export async function readConfig(): Promise<SwishCliConfig | null> {
   let raw: string;
   try {
-    raw = await fs.readFile(configPath(), 'utf8');
+    raw = await fs.readFile(configFilePath(), 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       return null;
@@ -45,7 +46,7 @@ export async function readConfig(): Promise<SwishCliConfig | null> {
   } catch (cause) {
     const reason = cause instanceof Error ? cause.message : String(cause);
     throw new Error(
-      `Failed to parse ${configPath()}: ${reason}. Run \`swish login\` to recreate it.`,
+      `Failed to parse ${configFilePath()}: ${reason}. Run \`swish login\` to recreate it.`,
     );
   }
   if (!parsed.apiUrl || !parsed.pat) {
@@ -68,17 +69,12 @@ export async function readConfig(): Promise<SwishCliConfig | null> {
 export async function writeConfig(value: SwishCliConfig): Promise<string> {
   const dir = configDir();
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
-  const file = configPath();
+  const file = configFilePath();
   await fs.writeFile(file, JSON.stringify(value, null, 2), { mode: 0o600 });
   return file;
 }
 
 /** Removes the persisted config. Idempotent — does nothing if absent. */
 export async function clearConfig(): Promise<void> {
-  await fs.rm(configPath(), { force: true });
-}
-
-/** Returns the absolute path the helpers above read from and write to. */
-export function configFilePath(): string {
-  return configPath();
+  await fs.rm(configFilePath(), { force: true });
 }
