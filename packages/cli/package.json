@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "tsc --noEmit",
+    "lint": "eslint . && tsc --noEmit",
     "test": "vitest run",
     "prepare": "tsup"
   },

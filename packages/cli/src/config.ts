@@ -7,9 +7,9 @@
  * truth allows future keychain backends to land behind these helpers
  * without callers being aware of where the secret lives.
  */
-import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import os from 'node:os'
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 
 export type SwishCliConfig = {
   apiUrl: string
@@ -17,11 +17,11 @@ export type SwishCliConfig = {
 }
 
 function configDir(): string {
-  return process.env.SWISH_CONFIG_DIR || path.join(os.homedir(), '.config', 'swish')
+  return process.env.SWISH_CONFIG_DIR || path.join(os.homedir(), '.config', 'swish');
 }
 
 function configPath(): string {
-  return path.join(configDir(), 'config.json')
+  return path.join(configDir(), 'config.json');
 }
 
 /**
@@ -30,24 +30,28 @@ function configPath(): string {
  * surfaced as a descriptive Error so the caller can show a recovery hint.
  */
 export async function readConfig(): Promise<SwishCliConfig | null> {
-  let raw: string
+  let raw: string;
   try {
-    raw = await fs.readFile(configPath(), 'utf8')
+    raw = await fs.readFile(configPath(), 'utf8');
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
-    throw err
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return null;
+    }
+    throw err;
   }
-  let parsed: Partial<SwishCliConfig>
+  let parsed: Partial<SwishCliConfig>;
   try {
-    parsed = JSON.parse(raw) as Partial<SwishCliConfig>
+    parsed = JSON.parse(raw) as Partial<SwishCliConfig>;
   } catch (cause) {
-    const reason = cause instanceof Error ? cause.message : String(cause)
+    const reason = cause instanceof Error ? cause.message : String(cause);
     throw new Error(
       `Failed to parse ${configPath()}: ${reason}. Run \`swish login\` to recreate it.`,
-    )
+    );
   }
-  if (!parsed.apiUrl || !parsed.pat) return null
-  return { apiUrl: parsed.apiUrl, pat: parsed.pat }
+  if (!parsed.apiUrl || !parsed.pat) {
+    return null;
+  }
+  return { apiUrl: parsed.apiUrl, pat: parsed.pat };
 }
 
 // TODO: keychain integration on macOS / Linux Secret Service / Windows
@@ -62,19 +66,19 @@ export async function readConfig(): Promise<SwishCliConfig | null> {
  * 0600 to keep the PAT readable only by the current user.
  */
 export async function writeConfig(value: SwishCliConfig): Promise<string> {
-  const dir = configDir()
-  await fs.mkdir(dir, { recursive: true, mode: 0o700 })
-  const file = configPath()
-  await fs.writeFile(file, JSON.stringify(value, null, 2), { mode: 0o600 })
-  return file
+  const dir = configDir();
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+  const file = configPath();
+  await fs.writeFile(file, JSON.stringify(value, null, 2), { mode: 0o600 });
+  return file;
 }
 
 /** Removes the persisted config. Idempotent — does nothing if absent. */
 export async function clearConfig(): Promise<void> {
-  await fs.rm(configPath(), { force: true })
+  await fs.rm(configPath(), { force: true });
 }
 
 /** Returns the absolute path the helpers above read from and write to. */
 export function configFilePath(): string {
-  return configPath()
+  return configPath();
 }

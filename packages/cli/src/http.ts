@@ -6,7 +6,7 @@
 import type {
   BookmarkCreateRequest,
   BookmarkCreateResponse,
-} from '@swish/shared'
+} from '@swish/shared';
 
 export type ApiClient = {
   apiUrl: string
@@ -14,14 +14,14 @@ export type ApiClient = {
 }
 
 export class BookmarkRequestError extends Error {
-  status: number
-  body: string
+  status: number;
+  body: string;
 
   constructor(status: number, body: string, message: string) {
-    super(message)
-    this.name = 'BookmarkRequestError'
-    this.status = status
-    this.body = body
+    super(message);
+    this.name = 'BookmarkRequestError';
+    this.status = status;
+    this.body = body;
   }
 }
 
@@ -41,7 +41,7 @@ export async function postBookmark(
   body: BookmarkCreateRequest,
 ): Promise<BookmarkCreateResponse> {
   // Strip a trailing slash so users may type the URL with or without one.
-  const url = `${client.apiUrl.replace(/\/$/, '')}/api/bookmarks`
+  const url = `${client.apiUrl.replace(/\/$/, '')}/api/bookmarks`;
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -49,14 +49,14 @@ export async function postBookmark(
       authorization: `Bearer ${client.pat}`,
     },
     body: JSON.stringify(body),
-  })
+  });
   if (!response.ok) {
-    const exposeBody = response.status >= 400 && response.status < 500
-    const text = exposeBody ? await response.text().catch(() => '') : ''
+    const exposeBody = response.status >= 400 && response.status < 500;
+    const text = exposeBody ? await response.text().catch(() => '') : '';
     const summary = exposeBody && text
       ? `POST ${url} -> ${response.status}: ${text.slice(0, 300)}`
-      : `POST ${url} -> ${response.status}`
-    throw new BookmarkRequestError(response.status, text, summary)
+      : `POST ${url} -> ${response.status}`;
+    throw new BookmarkRequestError(response.status, text, summary);
   }
-  return (await response.json()) as BookmarkCreateResponse
+  return (await response.json()) as BookmarkCreateResponse;
 }
