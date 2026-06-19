@@ -20,8 +20,25 @@ function lanDevOrigins(): string[] {
   return [bare, `${bare}.local`];
 }
 
+// Devices on the same LAN often reach the dev server by raw IPv4 address
+// rather than the mDNS hostname (e.g. Android, which lacks reliable mDNS).
+// Allow-list every non-internal IPv4 the machine exposes so those origins
+// are not blocked by Next's cross-origin dev guard.
+function lanDevIpAddresses(): string[] {
+  const interfaces = os.networkInterfaces();
+  const addresses: string[] = [];
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries ?? []) {
+      if (entry.family === 'IPv4' && !entry.internal) {
+        addresses.push(entry.address);
+      }
+    }
+  }
+  return addresses;
+}
+
 const nextConfig: NextConfig = {
-  allowedDevOrigins: lanDevOrigins(),
+  allowedDevOrigins: [...lanDevOrigins(), ...lanDevIpAddresses()],
 };
 
 export default nextConfig;

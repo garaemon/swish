@@ -27,6 +27,9 @@ function extractHost(url: string): string {
 }
 
 export function ItemRow({ item }: Props): React.JSX.Element {
+  // Wrap the server actions in a transition so we get a `pending` flag to
+  // disable the buttons (preventing double submits) and so the resulting
+  // revalidatePath re-render is non-urgent and never freezes the UI.
   const [pending, startTransition] = useTransition();
 
   return (

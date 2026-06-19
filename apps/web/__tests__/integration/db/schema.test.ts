@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
 import { connectLocalPg } from '../../helpers/pg';
+import { ProcessStatus } from '@/lib/pipeline/status';
 
 const EXPECTED_TABLES = [
   'feeds',
@@ -36,6 +37,10 @@ describe('public schema', () => {
   });
 
   it('items.process_status has a CHECK constraint covering all four states', async () => {
+    // Safe to interpolate: the values come from the ProcessStatus constant, not user input.
+    const statusClauses = Object.values(ProcessStatus)
+      .map((status) => `and cc.check_clause ilike '%${status}%'`)
+      .join('\n         ');
     const { rows } = await pg.query<{ count: string }>(
       `select count(*)::text as count
        from information_schema.check_constraints cc
@@ -44,10 +49,7 @@ describe('public schema', () => {
        where cc.constraint_schema = 'public'
          and ccu.table_name = 'items'
          and ccu.column_name = 'process_status'
-         and cc.check_clause ilike '%pending%'
-         and cc.check_clause ilike '%processing%'
-         and cc.check_clause ilike '%completed%'
-         and cc.check_clause ilike '%failed%'`,
+         ${statusClauses}`,
     );
     expect(Number(rows[0].count)).toBeGreaterThan(0);
   });

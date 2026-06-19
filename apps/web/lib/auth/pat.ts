@@ -5,10 +5,19 @@ import { getServerEnv } from '@/lib/env';
 const JWT_ALG = 'HS256';
 const JWT_ISSUER = 'swish';
 
+/**
+ * Payload of the JWT we issue as a PAT. Every field is a JWT registered
+ * claim defined by RFC 7519, so the names are standard rather than
+ * app-specific.
+ */
 export type PatClaims = {
+  /** Subject: the owning user id, matched against personal_access_tokens.user_id. */
   sub: string
+  /** JWT ID: equals the personal_access_tokens row id; revoking deletes that row. */
   jti: string
+  /** Issued At: token creation time, in UNIX seconds. */
   iat: number
+  /** Expiration Time: token expiry, in UNIX seconds; verified on every request. */
   exp: number
 }
 

@@ -1,5 +1,5 @@
 const ALLOWED_HEADERS = 'Authorization, Content-Type';
-const ALLOWED_METHODS = 'GET, POST, PUT, DELETE, OPTIONS';
+const ALLOWED_METHODS = 'POST, OPTIONS';
 
 /**
  * Builds CORS response headers that echo the request Origin.

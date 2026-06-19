@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { encryptString } from '@/lib/crypto/aes';
 import { runPipeline } from '@/lib/pipeline/run';
+import { ProcessStatus } from '@/lib/pipeline/status';
 import {
   createAdminClient,
   createTestUser,
@@ -88,6 +89,8 @@ describe('runPipeline (orchestrator)', () => {
   }
 
   it('takes a pending item to completed with summaries populated', async () => {
+    // Capture the original fetch so the mock can delegate non-mocked requests
+    // (e.g. Supabase calls) to it instead of recursing into itself.
     const realFetch = globalThis.fetch;
     vi.stubGlobal(
       'fetch',
@@ -109,7 +112,7 @@ describe('runPipeline (orchestrator)', () => {
     await runPipeline({ itemId, userId });
 
     const row = await readItem();
-    expect(row.process_status).toBe('completed');
+    expect(row.process_status).toBe(ProcessStatus.Completed);
     expect(row.summary_short).toBe('A short summary for tests.');
     expect(row.summary_long).toContain('Detail A');
     expect((row.content_text as string) ?? '').toContain('Readability extractor');
@@ -117,6 +120,7 @@ describe('runPipeline (orchestrator)', () => {
   });
 
   it('marks failed and records error when scraping cannot extract', async () => {
+    // Preserve the original fetch so non-mocked requests pass through.
     const realFetch = globalThis.fetch;
     vi.stubGlobal(
       'fetch',
@@ -133,11 +137,12 @@ describe('runPipeline (orchestrator)', () => {
     );
     await runPipeline({ itemId, userId });
     const row = await readItem();
-    expect(row.process_status).toBe('failed');
+    expect(row.process_status).toBe(ProcessStatus.Failed);
     expect(row.error_message).toMatch(/readability/i);
   });
 
   it('marks failed when Gemini returns malformed JSON', async () => {
+    // Preserve the original fetch so non-mocked requests pass through.
     const realFetch = globalThis.fetch;
     vi.stubGlobal(
       'fetch',
@@ -162,7 +167,7 @@ describe('runPipeline (orchestrator)', () => {
     );
     await runPipeline({ itemId, userId });
     const row = await readItem();
-    expect(row.process_status).toBe('failed');
+    expect(row.process_status).toBe(ProcessStatus.Failed);
     expect((row.error_message as string) ?? '').toMatch(/json|gemini/i);
   });
 });

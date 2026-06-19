@@ -1,0 +1,39 @@
+name: retarget-stacked-prs
+
+# When a stacked pull request is merged, GitHub is supposed to retarget any
+# dependent PRs (those whose base branch is the merged PR's head branch) to the
+# merged PR's base branch. In practice this does not fire for chained PRs, so
+# the dependent PR is closed when the head branch is deleted (see GitHub
+# community discussion #176698). This workflow performs the retarget explicitly
+# at merge time, before the branch can be deleted, so the dependent PR survives.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  retarget:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-slim
+    steps:
+      - name: Retarget dependent PRs to the merged base branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          MERGED_HEAD: ${{ github.event.pull_request.head.ref }}
+          MERGED_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          dependents=$(gh pr list --state open --base "$MERGED_HEAD" --json number --jq '.[].number')
+          if [ -z "$dependents" ]; then
+            echo "No open PRs based on '$MERGED_HEAD'; nothing to retarget."
+            exit 0
+          fi
+          for number in $dependents; do
+            echo "Retargeting PR #$number: base '$MERGED_HEAD' -> '$MERGED_BASE'"
+            gh pr edit "$number" --base "$MERGED_BASE"
+          done
