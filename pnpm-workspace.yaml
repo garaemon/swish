@@ -1,8 +1,12 @@
 packages:
   - 'apps/*'
   - 'packages/*'
-# Next.js' sharp dep + eslint's unrs-resolver ship native binaries and need
-# to run their installer scripts. pnpm 11 refuses to install otherwise.
+# Native binaries that need their installer scripts to run. pnpm 11 refuses
+# to install otherwise.
+#   sharp        — Next.js image optimisation
+#   unrs-resolver — eslint resolver used by next/lint
+#   esbuild      — tsup (used by @swish/cli) prebuilds an esbuild binary
 allowBuilds:
+  esbuild: true
   sharp: true
   unrs-resolver: true

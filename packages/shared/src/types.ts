@@ -29,3 +29,20 @@ export type TokenIssueResponse = {
   token: string
   expiresAt: string
 }
+
+export type BookmarkCreateRequest = {
+  url: string
+  title?: string
+}
+
+/**
+ * Response shape for POST /api/bookmarks. The API currently returns only
+ * 'pending' because the pipeline runs in the background via `after()`, but
+ * the union mirrors `items.process_status` so future callers (e.g. a
+ * "wait until completed" CLI flag) can branch off the same DTO without
+ * the type widening at the boundary.
+ */
+export type BookmarkCreateResponse = {
+  id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+}

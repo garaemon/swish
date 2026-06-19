@@ -28,10 +28,10 @@ const BOOKMARKLET_TEMPLATE = `(function(){
       alert('Swish save failed: ' + r.status);
     }
   }).catch(function(e){ alert('Swish: ' + e.message); });
-})();`
+})();`;
 
 function minifyForBookmarkletHref(source: string): string {
-  return encodeURIComponent(source.replace(/\s+/g, ' '))
+  return encodeURIComponent(source.replace(/\s+/g, ' '));
 }
 
 /**
@@ -42,15 +42,19 @@ function minifyForBookmarkletHref(source: string): string {
  * contain `$&` / `$1` etc. cannot be interpreted as backreferences.
  */
 export function buildBookmarklet(input: BookmarkletInput): string {
-  if (!input.apiUrl) throw new Error('apiUrl is required')
-  if (!input.pat) throw new Error('pat is required')
-  if (!/^https?:\/\//i.test(input.apiUrl)) {
-    throw new Error('apiUrl must start with http:// or https://')
+  if (!input.apiUrl) {
+    throw new Error('apiUrl is required');
   }
-  const trimmedUrl = input.apiUrl.replace(/\/$/, '')
+  if (!input.pat) {
+    throw new Error('pat is required');
+  }
+  if (!/^https?:\/\//i.test(input.apiUrl)) {
+    throw new Error('apiUrl must start with http:// or https://');
+  }
+  const trimmedUrl = input.apiUrl.replace(/\/$/, '');
   const body = BOOKMARKLET_TEMPLATE.replace(/__API_URL__/g, () => trimmedUrl).replace(
     /__PAT__/g,
     () => input.pat,
-  )
-  return `javascript:${minifyForBookmarkletHref(body)}`
+  );
+  return `javascript:${minifyForBookmarkletHref(body)}`;
 }

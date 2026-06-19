@@ -1,6 +1,6 @@
-export const DEFAULT_AI_PROVIDER = 'gemini'
-export const DEFAULT_AI_MODEL = 'gemini-2.5-flash'
-export const DEFAULT_AI_SUMMARY_LANGUAGE = 'English'
+export const DEFAULT_AI_PROVIDER = 'gemini';
+export const DEFAULT_AI_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_AI_SUMMARY_LANGUAGE = 'English';
 
 export type AiProviderOption = {
   value: string
@@ -16,7 +16,7 @@ export type AiModelOption = {
 /** Providers wired up in the pipeline. Only `gemini` ships today. */
 export const AI_PROVIDER_OPTIONS: ReadonlyArray<AiProviderOption> = [
   { value: 'gemini', label: 'Google Gemini' },
-]
+];
 
 /**
  * Curated list of Gemini models that Swish has verified against the
@@ -34,4 +34,4 @@ export const AI_MODEL_OPTIONS: ReadonlyArray<AiModelOption> = [
   { provider: 'gemini', value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (best quality, stable)' },
   { provider: 'gemini', value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (fast, cheap, stable)' },
   { provider: 'gemini', value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite (cheapest, stable)' },
-]
+];
