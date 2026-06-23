@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { encryptString } from '@/lib/crypto/aes';
 import { runPipeline } from '@/lib/pipeline/run';
+import type { MarkdownConverter } from '@/lib/pipeline/scrape';
 import { ProcessStatus } from '@/lib/pipeline/status';
 import {
   createAdminClient,
@@ -20,6 +21,25 @@ const SAMPLE_HTML = `<!doctype html>
     </article>
   </body>
 </html>`;
+
+// Markdown the Cloudflare converter would produce from SAMPLE_HTML. Injected
+// so the pipeline can be exercised without a live Workers AI binding.
+const SAMPLE_MARKDOWN = `# Pipeline Article
+
+This is the main content used to verify the pipeline orchestrator works end to end.
+
+The Readability extractor should pull this paragraph out and leave the chrome behind.`;
+
+function createFakeConverter(
+  result: { format: string; data?: string },
+): MarkdownConverter {
+  return {
+    toMarkdown: async () => result,
+  };
+}
+
+const SAMPLE_CONVERTER = createFakeConverter({ format: 'markdown', data: SAMPLE_MARKDOWN });
+const FAILING_CONVERTER = createFakeConverter({ format: 'error' });
 
 const GEMINI_RESPONSE = {
   candidates: [
@@ -109,7 +129,7 @@ describe('runPipeline (orchestrator)', () => {
       }),
     );
 
-    await runPipeline({ itemId, userId });
+    await runPipeline({ itemId, userId }, SAMPLE_CONVERTER);
 
     const row = await readItem();
     expect(row.process_status).toBe(ProcessStatus.Completed);
@@ -135,10 +155,10 @@ describe('runPipeline (orchestrator)', () => {
         return realFetch(input, init);
       }),
     );
-    await runPipeline({ itemId, userId });
+    await runPipeline({ itemId, userId }, FAILING_CONVERTER);
     const row = await readItem();
     expect(row.process_status).toBe(ProcessStatus.Failed);
-    expect(row.error_message).toMatch(/readability/i);
+    expect(row.error_message).toMatch(/conversion|extract/i);
   });
 
   it('marks failed when Gemini returns malformed JSON', async () => {
@@ -165,7 +185,7 @@ describe('runPipeline (orchestrator)', () => {
         return realFetch(input, init);
       }),
     );
-    await runPipeline({ itemId, userId });
+    await runPipeline({ itemId, userId }, SAMPLE_CONVERTER);
     const row = await readItem();
     expect(row.process_status).toBe(ProcessStatus.Failed);
     expect((row.error_message as string) ?? '').toMatch(/json|gemini/i);

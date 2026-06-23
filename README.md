@@ -1,6 +1,8 @@
 # Swish
 
-Personal RSS / bookmark manager focused on Inbox Zero. Built with Next.js + Supabase + Gemini, designed to run locally during development and deploy to Supabase Cloud + Vercel without code changes.
+Personal RSS / bookmark manager focused on Inbox Zero. Built with Next.js + Supabase + Gemini, designed to run locally during development and deploy to Supabase Cloud + Cloudflare Workers with only environment-variable changes.
+
+Hosting runs on Cloudflare Workers via the [OpenNext](https://opennext.js.org/cloudflare) adapter; Supabase (Postgres + Auth + RLS) stays as the data layer in both local and production.
 
 See [`Project_Blueprint_Swish.md`](Project_Blueprint_Swish.md) for the full design and [issue #1](https://github.com/garaemon/swish/issues/1) for the PR roadmap landing this on `main` in reviewable slices.
 
@@ -32,4 +34,37 @@ swish/
 
 ```bash
 pnpm install      # resolve workspace (currently no member packages yet)
+```
+
+## Deployment (Cloudflare Workers)
+
+Hosting uses the OpenNext Cloudflare adapter. The web app lives in `apps/web`.
+
+Prerequisites:
+
+- A Cloudflare account, and `wrangler login` (or a `CLOUDFLARE_API_TOKEN`) for
+  deploy. The Workers AI `toMarkdown` binding used for scraping is remote-only,
+  so even local `next dev` / `preview` needs Cloudflare credentials to run the
+  scrape pipeline.
+
+Public (non-secret) values — `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_APP_URL` — are needed both at
+build time (`next build` inlines `NEXT_PUBLIC_*` into the client bundle) and at
+runtime (server code re-reads them). Provide them to the build environment and
+as Cloudflare Worker `vars`. See `.env.example` for the full list.
+
+Secrets are set with `wrangler secret put` (run from `apps/web`):
+
+```bash
+cd apps/web
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # full DB access, bypasses RLS
+wrangler secret put MASTER_KEY                  # AES-256-GCM master key
+wrangler secret put JWT_SECRET                  # PAT signing secret (HS256)
+```
+
+Build, preview locally on workerd, and deploy:
+
+```bash
+pnpm --filter web preview   # build + run on local workerd
+pnpm --filter web deploy    # build + deploy to Cloudflare
 ```

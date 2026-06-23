@@ -21,7 +21,7 @@ function isPublicPath(pathname: string): boolean {
  * cookies must be copied onto the redirect response — otherwise the user is
  * sent to /login even though their session was refreshable.
  */
-export async function proxy(request: NextRequest): Promise<NextResponse> {
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next({ request });
   const env = getServerEnv();
 

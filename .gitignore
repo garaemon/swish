@@ -47,3 +47,9 @@ supabase/seed_local.sql
 # Next.js
 .next/
 next-env.d.ts
+
+# Cloudflare Workers / OpenNext
+.open-next/
+.wrangler/
+.dev.vars
+cloudflare-env.d.ts

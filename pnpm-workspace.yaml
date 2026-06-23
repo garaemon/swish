@@ -6,7 +6,9 @@ packages:
 #   sharp        — Next.js image optimisation
 #   unrs-resolver — eslint resolver used by next/lint
 #   esbuild      — tsup (used by @swish/cli) prebuilds an esbuild binary
+#   workerd      — Cloudflare Workers runtime used by wrangler/OpenNext preview
 allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  workerd: true

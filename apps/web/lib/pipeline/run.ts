@@ -3,10 +3,11 @@ import {
   DEFAULT_AI_MODEL,
   DEFAULT_AI_SUMMARY_LANGUAGE,
 } from '@swish/shared/defaults';
+import { getMarkdownConverter } from '@/lib/cloudflare/markdown-converter';
 import { decryptString } from '@/lib/crypto/aes';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { Database } from '@/lib/supabase/types';
-import { scrapeUrl } from './scrape';
+import { scrapeUrl, type MarkdownConverter } from './scrape';
 import { markCompleted, markFailed, markProcessing } from './status';
 import { summarize } from './summarize';
 
@@ -34,7 +35,10 @@ type ResolvedAiSettings = {
  * cannot mutate another user's data. (Defense in depth: the API routes
  * that schedule the pipeline already verify ownership.)
  */
-export async function runPipeline(input: RunPipelineInput): Promise<void> {
+export async function runPipeline(
+  input: RunPipelineInput,
+  converter?: MarkdownConverter,
+): Promise<void> {
   const supabase = createSupabaseServiceClient();
   try {
     await markProcessing(supabase, input.itemId, input.userId);
@@ -44,13 +48,16 @@ export async function runPipeline(input: RunPipelineInput): Promise<void> {
     if (url === null) {
       return;
     }
+    // Resolved inside the try so a missing AI binding marks the item failed
+    // instead of throwing uncaught.
+    const markdownConverter = converter ?? (await getMarkdownConverter());
     // Scrape and decrypt-settings are independent reads; run in parallel.
     // Trade-off: if the user has no API key configured (settings throws),
-    // we still consume a fetch + Readability pass before failing. Acceptable
+    // we still consume a fetch + Markdown conversion before failing. Acceptable
     // because Promise.all wins ~hundreds of ms in the happy path; the
     // wasted work in the unhappy path is bounded to one scrape.
     const [article, settings] = await Promise.all([
-      scrapeUrl(url),
+      scrapeUrl(url, markdownConverter),
       loadDecryptedSettings(supabase, input.userId),
     ]);
     await persistScrape(
