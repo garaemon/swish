@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { encryptString } from '@/lib/crypto/aes';
 import { runPipeline } from '@/lib/pipeline/run';
-import type { MarkdownConverter } from '@/lib/pipeline/scrape';
+import type { MarkdownConversionResult, MarkdownConverter } from '@/lib/pipeline/scrape';
 import { ProcessStatus } from '@/lib/pipeline/status';
 import {
   createAdminClient,
@@ -17,7 +17,7 @@ const SAMPLE_HTML = `<!doctype html>
     <article>
       <h1>Pipeline Article</h1>
       <p>This is the main content used to verify the pipeline orchestrator works end to end.</p>
-      <p>The Readability extractor should pull this paragraph out and leave the chrome behind.</p>
+      <p>The converter should surface this paragraph as the article body.</p>
     </article>
   </body>
 </html>`;
@@ -28,11 +28,9 @@ const SAMPLE_MARKDOWN = `# Pipeline Article
 
 This is the main content used to verify the pipeline orchestrator works end to end.
 
-The Readability extractor should pull this paragraph out and leave the chrome behind.`;
+The converter should surface this paragraph as the article body.`;
 
-function createFakeConverter(
-  result: { format: string; data?: string },
-): MarkdownConverter {
+function createFakeConverter(result: MarkdownConversionResult): MarkdownConverter {
   return {
     toMarkdown: async () => result,
   };
@@ -135,7 +133,7 @@ describe('runPipeline (orchestrator)', () => {
     expect(row.process_status).toBe(ProcessStatus.Completed);
     expect(row.summary_short).toBe('A short summary for tests.');
     expect(row.summary_long).toContain('Detail A');
-    expect((row.content_text as string) ?? '').toContain('Readability extractor');
+    expect((row.content_text as string) ?? '').toContain('surface this paragraph');
     expect(row.error_message).toBeNull();
   });
 

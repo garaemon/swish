@@ -49,6 +49,8 @@ export async function scrapeUrl(
  * Unlike the previous Readability-based extractor, Cloudflare's conversion
  * renders the whole page, so the markdown may include navigation/footer text;
  * the summarization step downstream is responsible for tolerating that noise.
+ * If summary quality needs tuning, pass `toMarkdown` HTML conversionOptions
+ * with a CSS selector to target the main content region.
  */
 export async function convertHtmlToMarkdown(
   url: string,
@@ -70,6 +72,40 @@ export async function convertHtmlToMarkdown(
   };
 }
 
+const EXCERPT_MAX_LENGTH = 200;
+
+const NAMED_HTML_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  mdash: '—',
+  ndash: '–',
+};
+
+// Decodes the named and numeric HTML entities that commonly appear in <title>
+// text. The named set is intentionally small (common punctuation only); rare
+// entities like &copy; pass through undecoded, which is acceptable for a
+// title. The Markdown path does not need this because toMarkdown already
+// decodes entities.
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, body: string) => {
+    if (body.startsWith('#')) {
+      const isHex = body[1] === 'x' || body[1] === 'X';
+      const codePoint = isHex ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
+      // <title> is untrusted input; reject anything outside the valid Unicode
+      // range so String.fromCodePoint cannot throw RangeError.
+      if (Number.isNaN(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+        return match;
+      }
+      return String.fromCodePoint(codePoint);
+    }
+    return NAMED_HTML_ENTITIES[body.toLowerCase()] ?? match;
+  });
+}
+
 /**
  * Derives a human title, preferring the HTML `<title>` element and falling
  * back to the first Markdown heading. Returns null when neither is present.
@@ -78,7 +114,7 @@ export function extractTitle(html: string, markdown: string): string | null {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const htmlTitle = titleMatch?.[1].replace(/\s+/g, ' ').trim();
   if (htmlTitle) {
-    return htmlTitle;
+    return decodeHtmlEntities(htmlTitle);
   }
   const headingMatch = markdown.match(/^#{1,6}\s+(.+?)\s*$/m);
   return headingMatch?.[1].trim() ?? null;
@@ -86,14 +122,25 @@ export function extractTitle(html: string, markdown: string): string | null {
 
 /**
  * Returns the first non-empty paragraph of the markdown as a short excerpt,
- * skipping leading headings. Returns null when no paragraph text exists.
+ * skipping leading headings and capping the length so downstream list views
+ * get a bounded string. Returns null when no paragraph text exists.
  */
 export function extractExcerpt(markdown: string): string | null {
   const paragraphs = markdown
     .split(/\n\s*\n/)
     .map((block) => block.replace(/\s+/g, ' ').trim())
     .filter((block) => block.length > 0 && !block.startsWith('#'));
-  return paragraphs[0] ?? null;
+  const firstParagraph = paragraphs[0];
+  if (!firstParagraph) {
+    return null;
+  }
+  // Cap by Unicode code point, not UTF-16 code unit, so a multi-byte character
+  // (e.g. an emoji) is never split mid-surrogate at the boundary.
+  const codePoints = Array.from(firstParagraph);
+  if (codePoints.length <= EXCERPT_MAX_LENGTH) {
+    return firstParagraph;
+  }
+  return `${codePoints.slice(0, EXCERPT_MAX_LENGTH).join('').trimEnd()}…`;
 }
 
 function fileNameForUrl(url: string): string {
@@ -107,8 +154,11 @@ function fileNameForUrl(url: string): string {
 
 async function fetchHtml(url: string): Promise<string> {
   // TODO: SSRF defence. Resolve the host and reject private / link-local /
-  // loopback addresses before fetching. In a Vercel deploy the function
-  // VM can reach internal services; for a local PoC this is academic.
+  // loopback addresses before fetching. On Cloudflare Workers there is no
+  // VM-local network to pivot into, but the URL is user-supplied, so without
+  // this check the Worker can still be used to probe internal hosts reachable
+  // from Cloudflare's egress or act as an open fetch proxy. Academic for a
+  // local single-user PoC; tighten before multi-user use.
   const response = await fetch(url, {
     headers: { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml' },
     signal: AbortSignal.timeout(15_000),

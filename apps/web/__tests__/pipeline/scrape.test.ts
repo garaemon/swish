@@ -3,6 +3,7 @@ import {
   convertHtmlToMarkdown,
   extractExcerpt,
   extractTitle,
+  type MarkdownConversionResult,
   type MarkdownConverter,
 } from '@/lib/pipeline/scrape';
 
@@ -29,9 +30,7 @@ Second paragraph that should not appear in the excerpt.`;
 
 // Returns a fixed conversion result regardless of input. Lets the pipeline
 // be tested without a live Cloudflare Workers AI binding.
-function createFakeConverter(
-  result: { format: string; data?: string },
-): MarkdownConverter {
+function createFakeConverter(result: MarkdownConversionResult): MarkdownConverter {
   return {
     toMarkdown: async () => result,
   };
@@ -48,6 +47,13 @@ describe('convertHtmlToMarkdown', () => {
     const converter = createFakeConverter({ format: 'markdown', data: SAMPLE_MARKDOWN });
     const result = await convertHtmlToMarkdown('https://example.com/post', SAMPLE_HTML, converter);
     expect(result.title).toContain('Inbox');
+  });
+
+  it('derives the excerpt from the first body paragraph', async () => {
+    const converter = createFakeConverter({ format: 'markdown', data: SAMPLE_MARKDOWN });
+    const result = await convertHtmlToMarkdown('https://example.com/post', SAMPLE_HTML, converter);
+    expect(result.excerpt).toContain('triage process');
+    expect(result.excerpt).not.toContain('Second paragraph');
   });
 
   it('throws when the converter reports a failure', async () => {
@@ -70,6 +76,17 @@ describe('extractTitle', () => {
   it('returns null when neither a title tag nor a heading is present', () => {
     expect(extractTitle('<html></html>', 'Body without heading')).toBeNull();
   });
+
+  it('decodes HTML entities in the title tag', () => {
+    const html = '<html><head><title>Tips &amp; Tricks &#39;26 &mdash; Done</title></head></html>';
+    expect(extractTitle(html, '')).toBe("Tips & Tricks '26 — Done");
+  });
+
+  it('leaves an out-of-range numeric entity untouched instead of throwing', () => {
+    expect(extractTitle('<html><head><title>&#x110000;</title></head></html>', '')).toBe(
+      '&#x110000;',
+    );
+  });
 });
 
 describe('extractExcerpt', () => {
@@ -77,5 +94,22 @@ describe('extractExcerpt', () => {
     const excerpt = extractExcerpt(SAMPLE_MARKDOWN);
     expect(excerpt).toContain('triage process');
     expect(excerpt).not.toContain('Second paragraph');
+  });
+
+  it('caps a long paragraph and appends an ellipsis', () => {
+    const longParagraph = 'word '.repeat(100).trim();
+    const excerpt = extractExcerpt(longParagraph);
+    expect(excerpt).not.toBeNull();
+    expect(Array.from(excerpt!).length).toBeLessThanOrEqual(201);
+    expect(excerpt!.endsWith('…')).toBe(true);
+  });
+
+  it('does not split a multi-byte character when capping', () => {
+    const emoji = '😀';
+    const excerpt = extractExcerpt(emoji.repeat(300));
+    expect(excerpt).not.toBeNull();
+    const chars = Array.from(excerpt!);
+    expect(chars.filter((char) => char === emoji).length).toBe(200);
+    expect(chars[chars.length - 1]).toBe('…');
   });
 });

@@ -12,8 +12,12 @@ import type { MarkdownConverter } from '@/lib/pipeline/scrape';
 export async function getMarkdownConverter(): Promise<MarkdownConverter> {
   const { env } = await getCloudflareContext({ async: true });
   const ai = (env as unknown as Record<string, unknown>).AI as MarkdownConverter | undefined;
-  if (!ai) {
-    throw new Error('Cloudflare AI binding (AI) is not configured');
+  if (!ai || typeof ai.toMarkdown !== 'function') {
+    throw new Error(
+      'Cloudflare AI binding (AI) is not configured. Declare it under "ai" in ' +
+        'wrangler.jsonc; for local `next dev`, also ensure Cloudflare credentials ' +
+        'are available so initOpenNextCloudflareForDev can proxy the binding.',
+    );
   }
   return ai;
 }

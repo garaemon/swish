@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     setAll(cookiesToSet) {
       for (const { name, value, options } of cookiesToSet) {
         // Mutating request.cookies makes the new cookie visible to any other
-        // proxy logic that re-reads cookies in this same invocation;
+        // middleware logic that re-reads cookies in this same invocation;
         // response.cookies propagates it back to the browser.
         request.cookies.set(name, value);
         response.cookies.set(name, value, options);
@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
 // Matches every UI route. Excludes /api/* (routes handle their own auth),
 // Next.js static and image assets, the favicon, and common public image
-// extensions so the proxy does not run getUser() once per <img> request.
+// extensions so the middleware does not run getUser() once per <img> request.
 export const config = {
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2?|ttf|otf|map)$).*)',
