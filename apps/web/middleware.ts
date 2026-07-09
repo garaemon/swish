@@ -2,6 +2,12 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerEnv } from '@/lib/env';
 
+// Intentionally uses the `middleware` file convention (Edge), not the newer
+// Next.js 16 `proxy` (Node.js proxy runtime): the OpenNext Cloudflare adapter
+// does not support `proxy`. `next dev` therefore logs a "middleware is
+// deprecated, use proxy" warning — expected until OpenNext supports it. Revert
+// this file to `proxy.ts` once it does.
+
 // /auth is reserved for the Supabase OAuth callback path once OAuth is wired
 // up; harmless to keep listed because no app/auth/* route exists yet.
 const PUBLIC_PATHS = ['/login', '/auth'];
