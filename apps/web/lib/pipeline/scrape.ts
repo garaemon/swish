@@ -64,12 +64,34 @@ export async function convertHtmlToMarkdown(
   if (conversion.format !== 'markdown' || !conversion.data) {
     throw new Error('Cloudflare Markdown conversion could not extract content from the page');
   }
-  const content = conversion.data.trim();
+  const content = stripLeadingFrontmatter(conversion.data.trim());
   return {
     title: extractTitle(html, content),
     content,
     excerpt: extractExcerpt(content),
   };
+}
+
+/**
+ * Removes a leading YAML frontmatter block (`---` fence, body, closing `---`
+ * fence) when the document opens with one. Cloudflare's whole-page `toMarkdown`
+ * conversion sometimes surfaces the page's frontmatter as literal text at the
+ * top of the article; left in place it pollutes the stored content, becomes the
+ * derived excerpt, and adds noise to the summary input.
+ *
+ * Only a block at the very start is stripped. A `---` appearing later (a
+ * thematic break or table rule) is untouched. The opening fence must be the
+ * first line, so it cannot be a setext heading underline. The trade-off: a
+ * document that legitimately opens with a thematic break AND contains a later
+ * `---` line would have the span between them removed — rare enough to accept
+ * for a whole-page conversion whose leading `---` is almost always frontmatter.
+ */
+export function stripLeadingFrontmatter(markdown: string): string {
+  const match = markdown.match(/^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/);
+  if (!match) {
+    return markdown;
+  }
+  return markdown.slice(match[0].length).trimStart();
 }
 
 const EXCERPT_MAX_LENGTH = 200;

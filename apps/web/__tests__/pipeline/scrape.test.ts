@@ -3,6 +3,7 @@ import {
   convertHtmlToMarkdown,
   extractExcerpt,
   extractTitle,
+  stripLeadingFrontmatter,
   type MarkdownConversionResult,
   type MarkdownConverter,
 } from '@/lib/pipeline/scrape';
@@ -61,6 +62,39 @@ describe('convertHtmlToMarkdown', () => {
     await expect(
       convertHtmlToMarkdown('https://example.com/empty', '<html></html>', converter),
     ).rejects.toThrow(/conversion/i);
+  });
+
+  it('strips leading frontmatter from the content and excerpt', async () => {
+    const markdown = `---
+description: Why & how we rewrote things
+title: Rewriting Bun in Rust
+---
+
+The real article body starts here.
+
+A second paragraph.`;
+    const converter = createFakeConverter({ format: 'markdown', data: markdown });
+    const result = await convertHtmlToMarkdown('https://example.com/post', SAMPLE_HTML, converter);
+    expect(result.content).not.toContain('description:');
+    expect(result.content.startsWith('The real article body')).toBe(true);
+    expect(result.excerpt).toBe('The real article body starts here.');
+  });
+});
+
+describe('stripLeadingFrontmatter', () => {
+  it('removes a leading frontmatter block', () => {
+    const input = '---\ntitle: Foo\nimage: bar.png\n---\n\nBody text.';
+    expect(stripLeadingFrontmatter(input)).toBe('Body text.');
+  });
+
+  it('leaves content without frontmatter untouched', () => {
+    const input = '# Heading\n\nBody text.';
+    expect(stripLeadingFrontmatter(input)).toBe(input);
+  });
+
+  it('does not strip a lone thematic break with no closing fence', () => {
+    const input = '---\n\nBody text with a leading rule.';
+    expect(stripLeadingFrontmatter(input)).toBe(input);
   });
 });
 
