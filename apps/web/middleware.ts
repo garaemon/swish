@@ -2,6 +2,12 @@ import { createServerClient, type CookieMethodsServer } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServerEnv } from '@/lib/env';
 
+// Intentionally uses the `middleware` file convention (Edge), not the newer
+// Next.js 16 `proxy` (Node.js proxy runtime): the OpenNext Cloudflare adapter
+// does not support `proxy`. `next dev` therefore logs a "middleware is
+// deprecated, use proxy" warning — expected until OpenNext supports it. Revert
+// this file to `proxy.ts` once it does.
+
 // /auth is reserved for the Supabase OAuth callback path once OAuth is wired
 // up; harmless to keep listed because no app/auth/* route exists yet.
 const PUBLIC_PATHS = ['/login', '/auth'];
@@ -21,7 +27,7 @@ function isPublicPath(pathname: string): boolean {
  * cookies must be copied onto the redirect response — otherwise the user is
  * sent to /login even though their session was refreshable.
  */
-export async function proxy(request: NextRequest): Promise<NextResponse> {
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.next({ request });
   const env = getServerEnv();
 
@@ -32,7 +38,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     setAll(cookiesToSet) {
       for (const { name, value, options } of cookiesToSet) {
         // Mutating request.cookies makes the new cookie visible to any other
-        // proxy logic that re-reads cookies in this same invocation;
+        // middleware logic that re-reads cookies in this same invocation;
         // response.cookies propagates it back to the browser.
         request.cookies.set(name, value);
         response.cookies.set(name, value, options);
@@ -66,7 +72,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 // Matches every UI route. Excludes /api/* (routes handle their own auth),
 // Next.js static and image assets, the favicon, and common public image
-// extensions so the proxy does not run getUser() once per <img> request.
+// extensions so the middleware does not run getUser() once per <img> request.
 export const config = {
   matcher: [
     '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff2?|ttf|otf|map)$).*)',

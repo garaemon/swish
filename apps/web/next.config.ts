@@ -1,4 +1,5 @@
 import os from 'node:os';
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import type { NextConfig } from 'next';
 
 // Next.js 16 blocks cross-origin dev-server requests (HMR / RSC) unless the
@@ -40,5 +41,14 @@ function lanDevIpAddresses(): string[] {
 const nextConfig: NextConfig = {
   allowedDevOrigins: [...lanDevOrigins(), ...lanDevIpAddresses()],
 };
+
+// Wires the Cloudflare bindings (e.g. the AI binding used for Markdown
+// conversion) into `next dev` via the miniflare proxy. Guarded to development
+// because the AI binding is remote-only: calling this during `next build`
+// would open a remote proxy session and fail without Cloudflare credentials.
+// In production the Worker runtime provides the bindings directly.
+if (process.env.NODE_ENV === 'development') {
+  initOpenNextCloudflareForDev();
+}
 
 export default nextConfig;
