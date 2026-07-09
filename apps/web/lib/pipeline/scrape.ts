@@ -59,7 +59,7 @@ export async function convertHtmlToMarkdown(
 ): Promise<ScrapeResult> {
   const conversion = await converter.toMarkdown({
     name: fileNameForUrl(url),
-    blob: new Blob([html], { type: 'text/html' }),
+    blob: new Blob([stripScriptAndStyle(html)], { type: 'text/html' }),
   });
   if (conversion.format !== 'markdown' || !conversion.data) {
     throw new Error('Cloudflare Markdown conversion could not extract content from the page');
@@ -70,6 +70,23 @@ export async function convertHtmlToMarkdown(
     content,
     excerpt: extractExcerpt(content),
   };
+}
+
+/**
+ * Removes `<script>` and `<style>` blocks from HTML before conversion.
+ * Cloudflare's `toMarkdown` renders the whole page, and pages commonly embed
+ * JSON-LD structured data in a `<script type="application/ld+json">` tag; left
+ * in place it surfaces as a trailing ```json code block in the article. This
+ * also drops inline scripts/styles that would otherwise become noise.
+ *
+ * A regex is adequate because the output is fed straight into `toMarkdown`, not
+ * re-served as HTML — we only need to blank out tag contents, not produce a
+ * security-sanitised document. `<title>` extraction still runs on the raw HTML.
+ */
+export function stripScriptAndStyle(html: string): string {
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
 }
 
 /**

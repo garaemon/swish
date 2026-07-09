@@ -4,6 +4,7 @@ import {
   extractExcerpt,
   extractTitle,
   stripLeadingFrontmatter,
+  stripScriptAndStyle,
   type MarkdownConversionResult,
   type MarkdownConverter,
 } from '@/lib/pipeline/scrape';
@@ -78,6 +79,30 @@ A second paragraph.`;
     expect(result.content).not.toContain('description:');
     expect(result.content.startsWith('The real article body')).toBe(true);
     expect(result.excerpt).toBe('The real article body starts here.');
+  });
+});
+
+describe('stripScriptAndStyle', () => {
+  it('removes JSON-LD structured data scripts', () => {
+    const html = `<html><head>
+      <title>Post</title>
+      <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting"}</script>
+    </head><body><p>Real content.</p></body></html>`;
+    const stripped = stripScriptAndStyle(html);
+    expect(stripped).not.toContain('schema.org');
+    expect(stripped).not.toContain('BlogPosting');
+    expect(stripped).toContain('Real content.');
+    expect(stripped).toContain('<title>Post</title>');
+  });
+
+  it('removes inline script and style blocks', () => {
+    const html = '<style>.a{color:red}</style><p>Body</p><script>alert(1)</script>';
+    expect(stripScriptAndStyle(html)).toBe('<p>Body</p>');
+  });
+
+  it('leaves script-free and style-free HTML untouched', () => {
+    const html = '<article><h1>Title</h1><p>Body</p></article>';
+    expect(stripScriptAndStyle(html)).toBe(html);
   });
 });
 
