@@ -1,6 +1,7 @@
 import os from 'node:os';
 import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare';
 import type { NextConfig } from 'next';
+import { hasResolvedCloudflareCredentials } from './lib/cloudflare/dev-credentials';
 
 // Next.js 16 blocks cross-origin dev-server requests (HMR / RSC) unless the
 // host is allow-listed. Derive the LAN-reachable hostname at config load
@@ -48,7 +49,20 @@ const nextConfig: NextConfig = {
 // would open a remote proxy session and fail without Cloudflare credentials.
 // In production the Worker runtime provides the bindings directly.
 if (process.env.NODE_ENV === 'development') {
-  initOpenNextCloudflareForDev();
+  // Remote bindings need real Cloudflare credentials. A plain `pnpm dev`
+  // (without `op run` resolving the op:// references in .env.local) would
+  // otherwise fail the remote proxy session with a noisy Cloudflare API
+  // error stack at every startup, so fall back to local-only bindings and
+  // say clearly what is disabled and how to enable it.
+  const remoteBindings = hasResolvedCloudflareCredentials(process.env);
+  if (!remoteBindings) {
+    console.warn(
+      '[next.config] Cloudflare credentials are not resolved; remote bindings ' +
+        '(env.AI / toMarkdown) are disabled for this dev session. Launch with ' +
+        '`op run --env-file .env.local -- pnpm dev` to enable them.',
+    );
+  }
+  initOpenNextCloudflareForDev({ remoteBindings });
 }
 
 export default nextConfig;
