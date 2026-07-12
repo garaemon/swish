@@ -3,7 +3,11 @@
 -- table is owned by a `profiles.id` that mirrors `auth.users.id`. Row-level
 -- security policies and the auth-signup trigger land in the next two
 -- migrations.
-create extension if not exists "uuid-ossp";
+--
+-- Primary keys default to gen_random_uuid() (built into Postgres core) rather
+-- than uuid-ossp's uuid_generate_v4(): on Supabase the uuid-ossp extension is
+-- installed into the `extensions` schema, which is not on the search_path when
+-- `supabase db push` applies migrations, so uuid_generate_v4() fails to resolve.
 
 create table public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
@@ -29,7 +33,7 @@ create table public.user_settings (
 );
 
 create table public.personal_access_tokens (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade not null,
   name text not null,
   expires_at timestamp with time zone,
@@ -38,7 +42,7 @@ create table public.personal_access_tokens (
 );
 
 create table public.feeds (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade not null,
   xml_url text not null,
   site_url text,
@@ -49,7 +53,7 @@ create table public.feeds (
 );
 
 create table public.items (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade not null,
   url text not null,
   title text,
@@ -70,7 +74,7 @@ create table public.items (
 );
 
 create table public.tags (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references public.profiles(id) on delete cascade not null,
   name text not null,
   created_at timestamp with time zone default now(),
