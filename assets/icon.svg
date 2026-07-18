@@ -1,40 +1,67 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="bg" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#2FB9F5"/>
-      <stop offset="0.55" stop-color="#2A6BE0"/>
-      <stop offset="1" stop-color="#2B3FD0"/>
+      <stop offset="0" stop-color="#3EC1F7"/>
+      <stop offset="0.55" stop-color="#2A5FDF"/>
+      <stop offset="1" stop-color="#2E3ED6"/>
+    </linearGradient>
+    <linearGradient id="net" gradientUnits="userSpaceOnUse" x1="253" y1="280" x2="253" y2="400">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C9D8F7"/>
     </linearGradient>
   </defs>
 
   <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- subtle bevel highlight -->
+  <rect x="20" y="20" width="472" height="472" rx="108" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="4"/>
 
   <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
-    <!-- swoosh (comet tail diving into the net) -->
-    <path stroke-width="12" d="M 228 292
-             C 244 196 300 138 368 128
-             C 330 162 310 210 296 292"/>
-    <!-- dashed motion trails inside the swoosh -->
-    <path stroke-width="8" stroke-dasharray="10 18" d="M 272 182 C 262 216 255 252 252 286"/>
-    <path stroke-width="8" stroke-dasharray="8 20" d="M 300 194 C 290 224 283 254 280 286"/>
+    <!-- swoosh: comet tail diving into the hoop, tip sweeping out to the upper right -->
+    <path stroke-width="13" d="M 218 276
+             C 234 180 288 104 396 112
+             C 344 150 320 206 302 278"/>
 
-    <!-- rim -->
-    <ellipse cx="256" cy="292" rx="92" ry="27" stroke-width="12"/>
+    <!-- falling dashes inside the tail -->
+    <g stroke-width="8">
+      <path d="M 238 250 L 236 268"/>
+      <path d="M 240 278 L 239 287"/>
+      <path d="M 258 240 L 255 262"/>
+      <path d="M 254 272 L 253 289"/>
+      <path d="M 276 238 L 273 258"/>
+      <path d="M 272 268 L 270 285"/>
+      <path d="M 294 244 L 291 260"/>
+      <path d="M 290 270 L 289 283"/>
+      <path d="M 270 208 L 266 226"/>
+      <path d="M 292 206 L 288 222"/>
+      <path d="M 312 188 L 307 204"/>
+    </g>
+    <!-- faint speed streaks near the top of the tail -->
+    <g stroke-width="8" stroke="#A8CDF6">
+      <path d="M 272 160 Q 265 175 261 192"/>
+      <path d="M 296 166 Q 290 178 286 194"/>
+    </g>
+
+    <!-- rim: front edge, back edge broken where the tail passes through,
+         plus an inner arc on the right like a swirling opening -->
+    <path stroke-width="12" d="M 157 282 A 96 26 0 0 0 349 282"/>
+    <path stroke-width="12" d="M 157 282 A 96 26 0 0 1 220 258"/>
+    <path stroke-width="12" d="M 316 262 A 96 26 0 0 1 349 282"/>
+    <path stroke-width="10" d="M 306 265 A 84 21 0 0 1 337 282"/>
 
     <!-- net -->
-    <g stroke-width="9" opacity="0.95">
-      <path d="M 170 296 Q 190 344 216 390"/>
-      <path d="M 342 296 Q 322 344 296 390"/>
-      <path d="M 170 296 Q 206 350 236 394"/>
-      <path d="M 213 312 Q 236 356 256 396"/>
-      <path d="M 256 318 Q 268 358 276 394"/>
-      <path d="M 342 296 Q 306 350 276 394"/>
-      <path d="M 299 312 Q 276 356 256 396"/>
-      <path d="M 256 318 Q 244 358 236 394"/>
-      <path d="M 213 312 Q 214 352 216 390"/>
-      <path d="M 299 312 Q 298 352 296 390"/>
-      <!-- bottom of the net -->
-      <path d="M 216 390 Q 256 404 296 390"/>
+    <g stroke-width="7" stroke="url(#net)">
+      <path d="M 166 293 Q 184 335 210 372"/>
+      <path d="M 340 293 Q 322 335 296 372"/>
+      <path d="M 166 293 Q 197 342 232 378"/>
+      <path d="M 205 304 Q 226 345 253 379"/>
+      <path d="M 253 308 Q 262 345 274 378"/>
+      <path d="M 340 293 Q 309 342 274 378"/>
+      <path d="M 301 304 Q 280 345 253 379"/>
+      <path d="M 253 308 Q 244 345 232 378"/>
+      <path d="M 205 304 Q 206 340 210 372"/>
+      <path d="M 301 304 Q 300 340 296 372"/>
+      <path d="M 210 372 Q 253 386 296 372"/>
     </g>
   </g>
 
