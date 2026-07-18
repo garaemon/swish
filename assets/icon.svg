@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2FB9F5"/>
+      <stop offset="0.55" stop-color="#2A6BE0"/>
+      <stop offset="1" stop-color="#2B3FD0"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <!-- swoosh (comet tail diving into the net) -->
+    <path stroke-width="12" d="M 228 292
+             C 244 196 300 138 368 128
+             C 330 162 310 210 296 292"/>
+    <!-- dashed motion trails inside the swoosh -->
+    <path stroke-width="8" stroke-dasharray="10 18" d="M 272 182 C 262 216 255 252 252 286"/>
+    <path stroke-width="8" stroke-dasharray="8 20" d="M 300 194 C 290 224 283 254 280 286"/>
+
+    <!-- rim -->
+    <ellipse cx="256" cy="292" rx="92" ry="27" stroke-width="12"/>
+
+    <!-- net -->
+    <g stroke-width="9" opacity="0.95">
+      <path d="M 170 296 Q 190 344 216 390"/>
+      <path d="M 342 296 Q 322 344 296 390"/>
+      <path d="M 170 296 Q 206 350 236 394"/>
+      <path d="M 213 312 Q 236 356 256 396"/>
+      <path d="M 256 318 Q 268 358 276 394"/>
+      <path d="M 342 296 Q 306 350 276 394"/>
+      <path d="M 299 312 Q 276 356 256 396"/>
+      <path d="M 256 318 Q 244 358 236 394"/>
+      <path d="M 213 312 Q 214 352 216 390"/>
+      <path d="M 299 312 Q 298 352 296 390"/>
+      <!-- bottom of the net -->
+      <path d="M 216 390 Q 256 404 296 390"/>
+    </g>
+  </g>
+
+  <text x="256" y="464" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="60" font-weight="700" fill="#FFFFFF">Swish</text>
+</svg>
