@@ -7,8 +7,12 @@ packages:
 #   unrs-resolver — eslint resolver used by next/lint
 #   esbuild      — tsup (used by @swish/cli) prebuilds an esbuild binary
 #   workerd      — Cloudflare Workers runtime used by wrangler/OpenNext preview
+#   spawn-sync   — transitive dep of wxt (web-ext-run) via @swish/extension;
+#                  its postinstall is a no-op on modern node (spawnSync is
+#                  built in) but must be approved so `pnpm install` exits 0
 allowBuilds:
   esbuild: true
   sharp: true
+  spawn-sync: true
   unrs-resolver: true
   workerd: true
