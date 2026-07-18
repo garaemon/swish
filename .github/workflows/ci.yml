@@ -45,6 +45,37 @@ jobs:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: pnpm build
 
+  extension:
+    # The extension's lint, unit tests, and compile already run in `verify`
+    # via the recursive `pnpm lint|test|build`. This job additionally packages
+    # the Chrome build into an installable zip and uploads it as an artifact,
+    # so each commit yields a ready-to-load-unpacked extension without a local
+    # build. `wxt zip` needs no env vars — the extension talks only to the
+    # user-configured Swish server at runtime.
+    name: chrome extension package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @swish/extension zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: swish-extension-chrome
+          path: apps/extension/.output/*-chrome.zip
+          if-no-files-found: error
+
   integration:
     name: supabase integration tests
     runs-on: ubuntu-latest
