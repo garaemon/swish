@@ -29,8 +29,8 @@
 
     <!-- net: smaller and smaller ellipses hanging below the rim -->
     <g stroke="url(#net)">
-      <ellipse cx="253" cy="320" rx="76" ry="20" stroke-width="11"/>
-      <ellipse cx="253" cy="353" rx="58" ry="15" stroke-width="10"/>
+      <ellipse cx="253" cy="322" rx="88" ry="23" stroke-width="11"/>
+      <ellipse cx="253" cy="359" rx="76" ry="19" stroke-width="10"/>
     </g>
   </g>
 
