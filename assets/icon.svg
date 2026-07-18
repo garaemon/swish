@@ -22,46 +22,16 @@
              C 234 180 288 104 396 112
              C 344 150 320 206 302 278"/>
 
-    <!-- falling dashes inside the tail -->
-    <g stroke-width="8">
-      <path d="M 238 250 L 236 268"/>
-      <path d="M 240 278 L 239 287"/>
-      <path d="M 258 240 L 255 262"/>
-      <path d="M 254 272 L 253 289"/>
-      <path d="M 276 238 L 273 258"/>
-      <path d="M 272 268 L 270 285"/>
-      <path d="M 294 244 L 291 260"/>
-      <path d="M 290 270 L 289 283"/>
-      <path d="M 270 208 L 266 226"/>
-      <path d="M 292 206 L 288 222"/>
-      <path d="M 312 188 L 307 204"/>
-    </g>
-    <!-- faint speed streaks near the top of the tail -->
-    <g stroke-width="8" stroke="#A8CDF6">
-      <path d="M 272 160 Q 265 175 261 192"/>
-      <path d="M 296 166 Q 290 178 286 194"/>
-    </g>
-
-    <!-- rim: front edge, back edge broken where the tail passes through,
-         plus an inner arc on the right like a swirling opening -->
+    <!-- rim: front edge, back edge broken where the tail passes through -->
     <path stroke-width="12" d="M 157 282 A 96 26 0 0 0 349 282"/>
     <path stroke-width="12" d="M 157 282 A 96 26 0 0 1 220 258"/>
     <path stroke-width="12" d="M 316 262 A 96 26 0 0 1 349 282"/>
-    <path stroke-width="10" d="M 306 265 A 84 21 0 0 1 337 282"/>
 
-    <!-- net -->
-    <g stroke-width="7" stroke="url(#net)">
-      <path d="M 166 293 Q 184 335 210 372"/>
-      <path d="M 340 293 Q 322 335 296 372"/>
-      <path d="M 166 293 Q 197 342 232 378"/>
-      <path d="M 205 304 Q 226 345 253 379"/>
-      <path d="M 253 308 Q 262 345 274 378"/>
-      <path d="M 340 293 Q 309 342 274 378"/>
-      <path d="M 301 304 Q 280 345 253 379"/>
-      <path d="M 253 308 Q 244 345 232 378"/>
-      <path d="M 205 304 Q 206 340 210 372"/>
-      <path d="M 301 304 Q 300 340 296 372"/>
-      <path d="M 210 372 Q 253 386 296 372"/>
+    <!-- net: smaller and smaller ellipses hanging below the rim -->
+    <g stroke="url(#net)">
+      <ellipse cx="253" cy="318" rx="76" ry="20" stroke-width="11"/>
+      <ellipse cx="253" cy="349" rx="60" ry="16" stroke-width="10"/>
+      <ellipse cx="253" cy="375" rx="46" ry="12" stroke-width="9"/>
     </g>
   </g>
 
