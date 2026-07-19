@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3EC1F7"/>
+      <stop offset="0.55" stop-color="#2A5FDF"/>
+      <stop offset="1" stop-color="#2E3ED6"/>
+    </linearGradient>
+    <linearGradient id="net" gradientUnits="userSpaceOnUse" x1="253" y1="280" x2="253" y2="400">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#C9D8F7"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <!-- subtle bevel highlight -->
+  <rect x="20" y="20" width="472" height="472" rx="108" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.16" stroke-width="4"/>
+
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round"
+     transform="translate(253 240) scale(1.18) translate(-253 -240)">
+    <!-- swoosh: comet tail diving into the hoop, tip sweeping out to the upper right -->
+    <path stroke-width="13" d="M 218 276
+             C 234 180 288 104 396 112
+             C 344 150 320 206 302 278"/>
+
+    <!-- rim: front edge, back edge broken where the tail passes through -->
+    <path stroke-width="12" d="M 157 282 A 96 26 0 0 0 349 282"/>
+    <path stroke-width="12" d="M 157 282 A 96 26 0 0 1 220 258"/>
+    <path stroke-width="12" d="M 316 262 A 96 26 0 0 1 349 282"/>
+
+    <!-- net: smaller and smaller ellipses hanging below the rim -->
+    <g stroke="url(#net)">
+      <ellipse cx="253" cy="322" rx="88" ry="23" stroke-width="11"/>
+      <ellipse cx="253" cy="359" rx="76" ry="19" stroke-width="10"/>
+    </g>
+  </g>
+
+  <text x="256" y="464" text-anchor="middle"
+        font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="60" font-weight="700" fill="#FFFFFF">Swish</text>
+</svg>

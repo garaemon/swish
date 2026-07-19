@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.svg" alt="Swish icon" width="160" />
+</p>
+
 # Swish
 
 Personal RSS / bookmark manager focused on Inbox Zero. Built with Next.js + Supabase + Gemini, designed to run locally during development and deploy to Supabase Cloud + Cloudflare Workers with only environment-variable changes.
