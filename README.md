@@ -14,30 +14,36 @@ See [`Project_Blueprint_Swish.md`](Project_Blueprint_Swish.md) for the full desi
 
 ```
 swish/
+├── apps/web/              Next.js app (OpenNext on Cloudflare Workers)
+├── packages/              shared workspace packages (cli, shared)
+├── supabase/              local stack config + SQL migrations
+├── scripts/               helper scripts (db type generation)
+├── mise.toml              pinned CLI tools (supabase, wrangler)
 ├── package.json           workspace root
 ├── pnpm-workspace.yaml    apps/* + packages/*
 └── Project_Blueprint_Swish.md
 ```
 
-## Prerequisites (for the eventual full stack)
+## Prerequisites
 
 - Node.js 22+
 - pnpm 11+
-- Docker (used by the local Supabase stack once `supabase` is wired up)
-- Supabase CLI v2+ — install the binary directly:
+- Docker (used by the local Supabase stack)
+- [mise](https://mise.jdx.dev/) — provides the Supabase CLI and wrangler
+  versions pinned in `mise.toml`:
 
   ```bash
-  curl -fsSL -o /tmp/supabase.tar.gz \
-    https://github.com/supabase/cli/releases/download/v2.98.2/supabase_linux_amd64.tar.gz
-  tar xzf /tmp/supabase.tar.gz -C /tmp
-  mkdir -p ~/.local/bin && mv /tmp/supabase ~/.local/bin/supabase
-  chmod +x ~/.local/bin/supabase
+  mise install
+  mise exec -- supabase --version
+  mise exec -- wrangler --version
   ```
 
 ## Local check
 
 ```bash
-pnpm install      # resolve workspace (currently no member packages yet)
+pnpm install
+pnpm lint
+pnpm test
 ```
 
 ## Deployment (Cloudflare Workers)
@@ -57,18 +63,52 @@ build time (`next build` inlines `NEXT_PUBLIC_*` into the client bundle) and at
 runtime (server code re-reads them). Provide them to the build environment and
 as Cloudflare Worker `vars`. See `.env.example` for the full list.
 
+The deploy build reads `apps/web/.env.local`, so point its values at
+production before deploying. In particular, set `NEXT_PUBLIC_APP_URL` to the
+public URL (for example `https://swish.example.com`), not `localhost` — the
+bookmarklet template embeds it.
+
 Secrets are set with `wrangler secret put` (run from `apps/web`):
 
 ```bash
 cd apps/web
-wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # full DB access, bypasses RLS
-wrangler secret put MASTER_KEY                  # AES-256-GCM master key
-wrangler secret put JWT_SECRET                  # PAT signing secret (HS256)
+mise exec -- wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # full DB access, bypasses RLS
+mise exec -- wrangler secret put MASTER_KEY                  # AES-256-GCM master key
+mise exec -- wrangler secret put JWT_SECRET                  # PAT signing secret (HS256)
 ```
+
+### Database migrations
+
+Link the repo to the Supabase Cloud project once, then push the SQL
+migrations in `supabase/migrations/`:
+
+```bash
+mise exec -- supabase link --project-ref <project-ref>
+mise exec -- supabase db push
+```
+
+`supabase db push --dry-run` lists pending migrations without applying them.
+
+### Build and deploy
 
 Build, preview locally on workerd, and deploy:
 
 ```bash
-pnpm --filter web preview   # build + run on local workerd
-pnpm --filter web deploy    # build + deploy to Cloudflare
+pnpm --filter web run preview   # build + run on local workerd
+pnpm --filter web run deploy    # build + deploy to Cloudflare
 ```
+
+The `run` keyword is required: `pnpm deploy` is a pnpm built-in command, so
+`pnpm --filter web deploy` invokes that built-in instead of the package
+script and fails with `ERR_PNPM_INVALID_DEPLOY_TARGET`.
+
+### User accounts
+
+The app has no self-service signup flow by design; the login page only signs
+in existing users. Create accounts from the Supabase Dashboard:
+
+1. Open Authentication → Users → "Add user" → "Create new user".
+2. Enter an email and password, and enable "Auto Confirm User".
+
+A database trigger (`handle_new_user`) seeds `profiles` and `user_settings`
+for every new auth user, so no further setup is needed.
