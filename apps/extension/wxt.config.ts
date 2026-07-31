@@ -13,6 +13,10 @@ export default defineConfig({
   manifest: {
     name: 'Swish',
     description: 'Save the current page to your Swish inbox',
+    // The options page validates URLs with URL.canParse, which is Chrome 120+.
+    // Without this floor an older Chrome installs fine, then silently fails to
+    // save any settings at all.
+    minimum_chrome_version: '120',
     permissions: ['storage', 'activeTab', 'notifications', 'contextMenus'],
     // No popup entrypoint exists, so declare the action explicitly — otherwise
     // WXT omits `action` and action.onClicked never fires.
