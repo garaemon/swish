@@ -3,8 +3,10 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 
 // Shared ESLint flat config for the Node/TypeScript workspace packages
-// (packages/cli, packages/shared). apps/web keeps its own Next.js-specific
-// config but mirrors the same style rules below.
+// (packages/cli, packages/shared, apps/extension). It stays framework-free, so
+// apps/extension layers the React hook rules on top for its options page.
+// apps/web keeps its own Next.js-specific config but mirrors the same style
+// rules below.
 export const baseConfig = defineConfig([
   js.configs.recommended,
   ...tseslint.configs.recommended,
