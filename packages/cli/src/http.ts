@@ -3,15 +3,14 @@
  * `${apiUrl}/api/bookmarks`. Keep server-internal error messages out of the
  * stderr so terminal session sharing does not leak DB-level details.
  */
-import type {
-  BookmarkCreateRequest,
-  BookmarkCreateResponse,
+import {
+  buildBookmarkPostRequest,
+  type ApiClient,
+  type BookmarkCreateRequest,
+  type BookmarkCreateResponse,
 } from '@swish/shared';
 
-export type ApiClient = {
-  apiUrl: string
-  pat: string
-}
+export type { ApiClient };
 
 export class BookmarkRequestError extends Error {
   status: number;
@@ -40,16 +39,8 @@ export async function postBookmark(
   client: ApiClient,
   body: BookmarkCreateRequest,
 ): Promise<BookmarkCreateResponse> {
-  // Strip a trailing slash so users may type the URL with or without one.
-  const url = `${client.apiUrl.replace(/\/$/, '')}/api/bookmarks`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${client.pat}`,
-    },
-    body: JSON.stringify(body),
-  });
+  const { url, init } = buildBookmarkPostRequest(client, body);
+  const response = await fetch(url, init);
   if (!response.ok) {
     const exposeBody = response.status >= 400 && response.status < 500;
     const text = exposeBody ? await response.text().catch(() => '') : '';
