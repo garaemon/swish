@@ -1,47 +1,85 @@
+/**
+ * The extension's only settings surface. The background worker opens this page
+ * automatically on the first save when either value is missing. Both values are
+ * written to chrome.storage.local through lib/settings.ts; the validation rules
+ * live there too, so they can be tested without a DOM.
+ */
 import { useEffect, useState } from 'react';
-import { apiUrlItem, patItem } from '../../lib/settings';
+import { apiUrlItem, patItem, validateSettingsInput } from '../../lib/settings';
 
 type Status =
   | { kind: 'idle' }
   | { kind: 'saved' }
-  | { kind: 'error'; message: string };
+  | { kind: 'error'; message: string }
 
+/** Renders the Swish URL and access token form for the options page. */
 export function App() {
   const [apiUrl, setApiUrl] = useState('');
   const [pat, setPat] = useState('');
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
 
   useEffect(() => {
-    void (async () => {
+    async function loadSavedSettings() {
       const [savedUrl, savedPat] = await Promise.all([
         apiUrlItem.getValue(),
         patItem.getValue(),
       ]);
       setApiUrl(savedUrl ?? '');
       setPat(savedPat ?? '');
-    })();
+      // The worker reopens this page whenever the stored values stop passing
+      // validation — an http:// URL kept from an older build, say. Without the
+      // reason the user faces a filled-in form and no hint at what to change.
+      if (savedUrl && savedPat) {
+        const validation = validateSettingsInput(savedUrl, savedPat);
+        if (!validation.ok) {
+          setStatus({ kind: 'error', message: validation.message });
+        }
+      }
+    }
+
+    loadSavedSettings().catch((error: unknown) => {
+      console.error('Swish: could not read stored settings', error);
+      setStatus({
+        kind: 'error',
+        message: 'Could not read the stored settings.',
+      });
+    });
   }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const trimmedUrl = apiUrl.trim().replace(/\/$/, '');
-    if (!/^https?:\/\//i.test(trimmedUrl)) {
-      setStatus({
-        kind: 'error',
-        message: 'URL must start with http:// or https://',
-      });
+    const validation = validateSettingsInput(apiUrl, pat);
+    if (!validation.ok) {
+      setStatus({ kind: 'error', message: validation.message });
       return;
     }
-    if (!pat.trim()) {
-      setStatus({ kind: 'error', message: 'Access token is required.' });
+    const { settings } = validation;
+    // React does not await this handler, so a rejected write would otherwise
+    // leave the page showing neither "Saved." nor an error — indistinguishable
+    // from the click never registering, with nothing actually persisted.
+    try {
+      await Promise.all([
+        apiUrlItem.setValue(settings.apiUrl),
+        patItem.setValue(settings.pat),
+      ]);
+    } catch (error) {
+      console.error('Swish: could not store settings', error);
+      setStatus({ kind: 'error', message: 'Could not save the settings.' });
       return;
     }
-    await Promise.all([
-      apiUrlItem.setValue(trimmedUrl),
-      patItem.setValue(pat.trim()),
-    ]);
-    setApiUrl(trimmedUrl);
+    // Echo both normalized values back so the form never shows something other
+    // than what was stored. The token matters most: it is a password field, so
+    // whitespace picked up from a paste is invisible.
+    setApiUrl(settings.apiUrl);
+    setPat(settings.pat);
     setStatus({ kind: 'saved' });
+  }
+
+  // Any edit invalidates the previous verdict: "Saved." must not sit above
+  // unsaved input, and a corrected field must not keep showing its old error.
+  function editField(setField: (value: string) => void, value: string) {
+    setField(value);
+    setStatus({ kind: 'idle' });
   }
 
   return (
@@ -58,7 +96,7 @@ export function App() {
           <input
             type="url"
             value={apiUrl}
-            onChange={(e) => setApiUrl(e.target.value)}
+            onChange={(event) => editField(setApiUrl, event.target.value)}
             placeholder="https://swish.example.com"
             style={styles.input}
             autoComplete="off"
@@ -69,7 +107,7 @@ export function App() {
           <input
             type="password"
             value={pat}
-            onChange={(e) => setPat(e.target.value)}
+            onChange={(event) => editField(setPat, event.target.value)}
             placeholder="Personal access token"
             style={styles.input}
             autoComplete="off"
@@ -89,7 +127,9 @@ export function App() {
   );
 }
 
-const styles: Record<string, React.CSSProperties> = {
+// `satisfies` rather than an annotation: an index signature would let a typo
+// like `styles.buttton` compile and silently render with no styles.
+const styles = {
   main: {
     fontFamily: 'system-ui, sans-serif',
     maxWidth: 420,
@@ -125,4 +165,4 @@ const styles: Record<string, React.CSSProperties> = {
   },
   saved: { color: '#16a34a', fontSize: '0.85rem' },
   error: { color: '#dc2626', fontSize: '0.85rem' },
-};
+} satisfies Record<string, React.CSSProperties>;
