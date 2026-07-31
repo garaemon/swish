@@ -123,14 +123,20 @@ right-click menu saves the current page to your Swish inbox via the same
 
 - **Save**: click the toolbar icon (or press `Alt+Shift+S`, or right-click →
   *Save to Swish*, which also works on a link to save it without opening it).
-  Feedback is shown as a badge on the icon — green `✓` saved, amber `∅` already
-  in inbox, red `!` error (with a notification explaining what went wrong).
+  Feedback is shown as a badge on the icon:
+  - green `✓` — saved,
+  - amber `∅` — already in inbox,
+  - red `!` — error, with a notification explaining what went wrong,
+  - red `?` — the server replied with something Swish could not read; check
+    your inbox to see whether the page was saved.
 - **Open inbox**: right-click the toolbar icon → *Open Swish inbox*.
 - **Setup**: on first save with no settings, the options page opens. Enter your
   deployed Swish URL (the `NEXT_PUBLIC_APP_URL`) and a Personal Access Token
   issued in the web app under **Settings → API tokens**. Both are stored in
   `chrome.storage.local` (on-device only — the token is a secret and is never
-  synced).
+  synced). The URL must use `https://`; plain `http://` is accepted only for
+  `localhost`, `127.0.0.1`, and `[::1]`, because every save sends the token in
+  an `Authorization` header.
 
 The extension needs **no host permissions**: `POST /api/bookmarks` already
 serves permissive CORS (see `apps/web/lib/http/cors.ts`), so the background

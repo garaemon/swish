@@ -1,10 +1,10 @@
 import { defineConfig } from 'wxt';
 
-// See /root/.claude/plans notes: this is a save-only MV3 extension. It needs
-// NO host_permissions because Swish's POST /api/bookmarks already implements
-// permissive CORS (apps/web/lib/http/cors.ts reflects the request Origin and
-// allows the Authorization header), so the service worker's fetch — which
-// sends `Origin: chrome-extension://<id>` — is accepted as-is. Keeping host
+// This is a save-only MV3 extension. It needs NO host_permissions because
+// Swish's POST /api/bookmarks already implements permissive CORS
+// (apps/web/lib/http/cors.ts reflects the request Origin and allows the
+// Authorization header), so the service worker's fetch — which sends
+// `Origin: chrome-extension://<id>` — is accepted as-is. Keeping host
 // permissions off means zero "read your data on all websites" install
 // warnings. If cors.ts is ever tightened to an origin allowlist, either add
 // the extension origin there or switch this to optional_host_permissions.
