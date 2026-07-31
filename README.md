@@ -112,3 +112,45 @@ in existing users. Create accounts from the Supabase Dashboard:
 
 A database trigger (`handle_new_user`) seeds `profiles` and `user_settings`
 for every new auth user, so no further setup is needed.
+
+## Browser extension (Chrome)
+
+`apps/extension` is a minimal, save-only Chrome extension (Manifest V3, built
+with [WXT](https://wxt.dev) + React). It's the richer replacement for the
+bookmarklet: clicking the toolbar icon, pressing the shortcut, or using the
+right-click menu saves the current page to your Swish inbox via the same
+`POST /api/bookmarks` + Personal Access Token flow.
+
+- **Save**: click the toolbar icon (or press `Alt+Shift+S`, or right-click →
+  *Save to Swish*, which also works on a link to save it without opening it).
+  Feedback is shown as a badge on the icon:
+  - green `✓` — saved,
+  - amber `∅` — already in inbox,
+  - red `!` — error, with a notification explaining what went wrong,
+  - red `?` — the server replied with something Swish could not read; check
+    your inbox to see whether the page was saved.
+- **Open inbox**: right-click the toolbar icon → *Open Swish inbox*.
+- **Setup**: on first save with no settings, the options page opens. Enter your
+  deployed Swish URL (the `NEXT_PUBLIC_APP_URL`) and a Personal Access Token
+  issued in the web app under **Settings → API tokens**. Both are stored in
+  `chrome.storage.local` (on-device only — the token is a secret and is never
+  synced). The URL must use `https://`; plain `http://` is accepted only for
+  `localhost`, `127.0.0.1`, and `[::1]`, because every save sends the token in
+  an `Authorization` header.
+
+The extension needs **no host permissions**: `POST /api/bookmarks` already
+serves permissive CORS (see `apps/web/lib/http/cors.ts`), so the background
+service worker's request is accepted as-is and the extension installs with no
+"read your data on all websites" warning.
+
+Develop and build:
+
+```bash
+pnpm --filter @swish/extension dev     # launches Chrome with the extension + HMR
+pnpm --filter @swish/extension build   # outputs apps/extension/.output/chrome-mv3
+pnpm --filter @swish/extension zip      # zip for Chrome Web Store upload
+```
+
+To load it manually: build, then open `chrome://extensions`, enable *Developer
+mode*, click *Load unpacked*, and select `apps/extension/.output/chrome-mv3`.
+Rebind the keyboard shortcut at `chrome://extensions/shortcuts`.

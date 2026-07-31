@@ -7,10 +7,15 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./api-client": "./src/api-client.ts",
     "./bookmarklet": "./src/bookmarklet.ts",
     "./defaults": "./src/defaults.ts"
   },
   "scripts": {
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.6"
   }
 }

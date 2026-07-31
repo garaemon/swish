@@ -44,6 +44,10 @@ supabase/seed_local.sql
 # Playwright MCP scratch
 .playwright-mcp/
 
+# WXT (apps/extension) generated types and build output
+.wxt/
+.output/
+
 # Next.js
 .next/
 next-env.d.ts

@@ -10,6 +10,11 @@ const ALLOWED_METHODS = 'POST, OPTIONS';
  * and an explicit allowlist. Today any origin that has somehow obtained
  * a user's PAT can post to /api/bookmarks; acceptable for a local PoC
  * but worth tightening before public deploy.
+ *
+ * Note: apps/extension ships with no host_permissions and relies on this
+ * reflection to save from the service worker. Tightening the allowlist breaks
+ * every extension save unless `chrome-extension://<id>` is allowlisted here or
+ * the extension switches to optional_host_permissions.
  */
 export function corsHeaders(origin: string | null): Headers {
   const headers = new Headers();
