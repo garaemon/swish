@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveSaveTarget, outcomeForResult } from '../lib/save';
+import { resolveSaveTarget, buildSaveFeedback } from '../lib/save';
 
 describe('resolveSaveTarget', () => {
   it('uses the active tab url and title when no link is given', () => {
@@ -51,20 +51,20 @@ describe('resolveSaveTarget', () => {
   });
 });
 
-describe('outcomeForResult', () => {
+describe('buildSaveFeedback', () => {
   it('shows a green check with no notification on save', () => {
-    const outcome = outcomeForResult({
+    const feedback = buildSaveFeedback({
       kind: 'saved',
       response: { id: 'x', status: 'pending' },
     });
-    expect(outcome.badgeText).toBe('✓');
-    expect(outcome.notification).toBeUndefined();
+    expect(feedback.badgeText).toBe('✓');
+    expect(feedback.notification).toBeUndefined();
   });
 
   it('shows an amber badge with no notification on duplicate', () => {
-    const outcome = outcomeForResult({ kind: 'duplicate' });
-    expect(outcome.badgeText).toBe('∅');
-    expect(outcome.notification).toBeUndefined();
+    const feedback = buildSaveFeedback({ kind: 'duplicate' });
+    expect(feedback.badgeText).toBe('∅');
+    expect(feedback.notification).toBeUndefined();
   });
 
   it('notifies on auth, http, and network errors', () => {
@@ -73,9 +73,15 @@ describe('outcomeForResult', () => {
       { kind: 'http_error' as const, status: 500 },
       { kind: 'network_error' as const, message: 'down' },
     ]) {
-      const outcome = outcomeForResult(result);
-      expect(outcome.badgeText).toBe('!');
-      expect(outcome.notification).toBeDefined();
+      const feedback = buildSaveFeedback(result);
+      expect(feedback.badgeText).toBe('!');
+      expect(feedback.notification).toBeDefined();
     }
+  });
+
+  it('does not claim a failure when the server accepted the request', () => {
+    const feedback = buildSaveFeedback({ kind: 'invalid_response' });
+    expect(feedback.badgeText).toBe('?');
+    expect(feedback.notification?.message).toContain('Check your inbox');
   });
 });
