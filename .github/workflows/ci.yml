@@ -48,6 +48,14 @@ jobs:
   integration:
     name: supabase integration tests
     runs-on: ubuntu-latest
+    env:
+      # config.toml enables the Google auth provider, whose client_id/secret
+      # come from the environment. The CLI rejects an enabled provider whose
+      # credentials resolve to empty strings, so supply placeholders rather
+      # than depend on how a given CLI version resolves an unset env() ref.
+      # CI never performs a real Google round trip, so the values are unused.
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-placeholder-client-id
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-placeholder-secret
     steps:
       - uses: actions/checkout@v4
 

@@ -68,6 +68,11 @@ production before deploying. In particular, set `NEXT_PUBLIC_APP_URL` to the
 public URL (for example `https://swish.example.com`), not `localhost` — the
 bookmarklet template embeds it.
 
+`ALLOWED_SIGNUP_EMAILS` is optional and read at runtime by the OAuth callback.
+It is not sensitive, so set it as a Cloudflare Worker `var` rather than a
+secret. Leaving it unset means anyone with a Google account can create an
+account on the deployed instance — see "User accounts" below.
+
 Secrets are set with `wrangler secret put` (run from `apps/web`):
 
 ```bash
@@ -104,11 +109,54 @@ script and fails with `ERR_PNPM_INVALID_DEPLOY_TARGET`.
 
 ### User accounts
 
-The app has no self-service signup flow by design; the login page only signs
-in existing users. Create accounts from the Supabase Dashboard:
+The login page offers "Continue with Google" and an email + password form.
+
+Google sign-in also creates accounts. Who may create one is controlled by the
+optional `ALLOWED_SIGNUP_EMAILS` environment variable — a comma-separated list
+of full addresses (`me@example.com`) or domains (`@example.com`):
+
+- unset or empty: anyone with a Google account can sign up;
+- set: only matching addresses can create an account. A rejected sign-in is
+  rolled back (the auth user is deleted again) and the browser lands back on
+  `/login` with an explanatory message.
+
+Existing users always sign in, whether or not their address is on the list.
+Email + password *signup* is disabled at the Supabase level, so Google is the
+only self-service way in; accounts can still be created by hand from the
+Supabase Dashboard:
 
 1. Open Authentication → Users → "Add user" → "Create new user".
 2. Enter an email and password, and enable "Auto Confirm User".
 
 A database trigger (`handle_new_user`) seeds `profiles` and `user_settings`
-for every new auth user, so no further setup is needed.
+for every new auth user — including ones created through Google — so no
+further setup is needed.
+
+### Google sign-in setup
+
+Supabase, not the app, talks to Google. Both the local stack and the hosted
+project need their own OAuth client configuration.
+
+1. Google Cloud Console → APIs & Services → Credentials → "Create
+   credentials" → OAuth client ID → *Web application*.
+2. Add the **Supabase** callback as an authorized redirect URI:
+   - local: `http://127.0.0.1:54321/auth/v1/callback`
+   - production: `https://<project-ref>.supabase.co/auth/v1/callback`
+
+   The app's own `/auth/callback` route is a `redirectTo` target handled by
+   Supabase; it does not belong in the Google console.
+3. Local stack — export the credentials the Supabase CLI substitutes into
+   `supabase/config.toml`, then restart so the change is picked up:
+
+   ```bash
+   export SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+   export SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...
+   mise exec -- supabase stop && mise exec -- supabase start
+   ```
+
+4. Production — `supabase/config.toml` does not reach the hosted project
+   unless you run `supabase config push`, so configure it in the Dashboard:
+   Authentication → Providers → Google (enable, paste the client ID and
+   secret), Authentication → Providers → Email (turn "Allow new users to sign
+   up" off), and Authentication → URL Configuration (Site URL =
+   `NEXT_PUBLIC_APP_URL`, Redirect URLs += `https://<app-host>/**`).
