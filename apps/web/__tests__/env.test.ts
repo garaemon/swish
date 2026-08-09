@@ -8,6 +8,7 @@ const REQUIRED_ENV_KEYS = [
   'MASTER_KEY',
   'JWT_SECRET',
   'NEXT_PUBLIC_APP_URL',
+  'NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL',
   'GEMINI_API_ENDPOINT',
 ] as const;
 
@@ -65,6 +66,25 @@ describe('getServerEnv', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'not-a-url';
     resetServerEnvCache();
     expect(() => getServerEnv()).toThrow(/Invalid server environment:[\s\S]*NEXT_PUBLIC_SUPABASE_URL/);
+  });
+
+  it('accepts optional NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL when a URL', () => {
+    setValidEnv();
+    process.env.NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL =
+      'https://www.icloud.com/shortcuts/abc123';
+    const env = getServerEnv();
+    expect(env.NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL).toBe(
+      'https://www.icloud.com/shortcuts/abc123',
+    );
+  });
+
+  it('rejects a malformed NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL', () => {
+    setValidEnv();
+    process.env.NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL = 'not-a-url';
+    resetServerEnvCache();
+    expect(() => getServerEnv()).toThrow(
+      /Invalid server environment:[\s\S]*NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL/,
+    );
   });
 
   it('accepts optional GEMINI_API_ENDPOINT when present and a URL', () => {
