@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { buildShortcutSetupUrl, SHORTCUT_NAME } from '@/lib/shortcut/setup-url';
 
 type Props = {
   apiUrl: string
@@ -84,7 +85,7 @@ function ManualSteps(): React.JSX.Element {
           Optional: add <strong>Show Notification</strong> with text &ldquo;Saved to
           Swish&rdquo; so the share sheet confirms success without opening the app.
         </li>
-        <li>Name it &ldquo;Save to Swish&rdquo; and tap <strong>Done</strong>.</li>
+        <li>Name it &ldquo;{SHORTCUT_NAME}&rdquo; and tap <strong>Done</strong>.</li>
       </ol>
       <p>
         The shortcut will now appear in the share sheet of any iOS app that exposes a URL.
@@ -93,53 +94,52 @@ function ManualSteps(): React.JSX.Element {
   );
 }
 
+function ManualValues({ apiUrl, pat }: { apiUrl: string; pat: string }): React.JSX.Element {
+  const endpoint = `${apiUrl.replace(/\/$/, '')}/api/bookmarks`;
+  const authorization = `Bearer ${pat}`;
+  const bodyShape = '{"url": "Shortcut Input"}';
+
+  return (
+    <div className="flex flex-col gap-3 rounded border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-zinc-900">
+      <CopyableRow
+        label="Endpoint URL"
+        value={endpoint}
+        hint="Paste into Get Contents of URL → URL"
+      />
+      <CopyableRow
+        label="Authorization header"
+        value={authorization}
+        hint="Header name: Authorization. This PAT is shown once — save it now."
+      />
+      <CopyableRow
+        label="Request body JSON shape"
+        value={bodyShape}
+        hint='Use "url" as the key, then bind the value to the Shortcut Input variable.'
+      />
+    </div>
+  );
+}
+
+const STEP_BADGE_CLASS =
+  'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-500 text-xs font-semibold text-white';
+
+const BUTTON_CLASS =
+  'self-start rounded bg-zinc-900 px-4 py-2 font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300';
+
 /**
  * Apple Shortcuts "Save to Swish" share-sheet setup. Shown alongside the
  * bookmarklet link right after a PAT is issued because the PAT is only
  * visible once.
  *
  * iOS refuses unsigned .shortcut files, so the app cannot generate a
- * ready-made shortcut per user. The closest thing to one-click is a shared
- * iCloud template (NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL) whose import
- * questions ask for the two values below — see
- * docs/ios-shortcut-template.md for how to create and share it once.
+ * ready-made shortcut per user. Instead, a shared iCloud template
+ * (NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL) is installed as-is with no import
+ * questions, then a shortcuts://run-shortcut deep link runs it once in
+ * configuration mode to hand it the endpoint + PAT — zero pasting. See
+ * docs/ios-shortcut-template.md for the template's branching logic.
  * Without a template URL we fall back to step-by-step manual instructions.
  */
 export function IosShortcutSetup({ apiUrl, pat, templateUrl }: Props): React.JSX.Element {
-  const endpoint = `${apiUrl.replace(/\/$/, '')}/api/bookmarks`;
-  const authorization = `Bearer ${pat}`;
-  const bodyShape = '{"url": "Shortcut Input"}';
-
-  const copyableValues = (
-    <div className="flex flex-col gap-3 rounded border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-zinc-900">
-      <CopyableRow
-        label="Endpoint URL"
-        value={endpoint}
-        hint={
-          templateUrl
-            ? 'Paste into the first import question.'
-            : 'Paste into Get Contents of URL → URL'
-        }
-      />
-      <CopyableRow
-        label="Authorization header"
-        value={authorization}
-        hint={
-          templateUrl
-            ? 'Paste into the second import question. This PAT is shown once — save it now.'
-            : 'Header name: Authorization. This PAT is shown once — save it now.'
-        }
-      />
-      {templateUrl ? null : (
-        <CopyableRow
-          label="Request body JSON shape"
-          value={bodyShape}
-          hint='Use "url" as the key, then bind the value to the Shortcut Input variable.'
-        />
-      )}
-    </div>
-  );
-
   if (!templateUrl) {
     return (
       <details className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-700 dark:bg-amber-950">
@@ -148,42 +148,61 @@ export function IosShortcutSetup({ apiUrl, pat, templateUrl }: Props): React.JSX
         </summary>
         <div className="mt-3 flex flex-col gap-4">
           <ManualSteps />
-          {copyableValues}
+          <ManualValues apiUrl={apiUrl} pat={pat} />
         </div>
       </details>
     );
   }
 
+  const setupUrl = buildShortcutSetupUrl({ apiUrl, pat });
+
   return (
     <div className="mt-4 flex flex-col gap-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-700 dark:bg-amber-950">
       <p className="font-medium">iOS Shortcut setup</p>
       <p>
-        Open this page on your iPhone / iPad, copy the two values below, then tap the
-        button. Shortcuts opens the shared template and asks two import questions —
-        paste the endpoint into the first and the Authorization value into the second,
-        then tap <strong>Add Shortcut</strong>. Done: &ldquo;Save to Swish&rdquo; shows
-        up in the share sheet.
+        Open this page on your iPhone / iPad and follow the two steps — no copying or
+        pasting needed.
       </p>
-      <a
-        href={templateUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="self-start rounded bg-zinc-900 px-4 py-2 font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-      >
-        Add &ldquo;Save to Swish&rdquo; shortcut
-      </a>
-      {copyableValues}
+      <div className="flex items-start gap-3">
+        <span className={STEP_BADGE_CLASS}>1</span>
+        <div className="flex flex-col gap-2">
+          <p>
+            Install the shortcut. Shortcuts opens the shared template — just tap{' '}
+            <strong>Add Shortcut</strong>.
+          </p>
+          <a href={templateUrl} target="_blank" rel="noreferrer" className={BUTTON_CLASS}>
+            Add &ldquo;{SHORTCUT_NAME}&rdquo; shortcut
+          </a>
+        </div>
+      </div>
+      <div className="flex items-start gap-3">
+        <span className={STEP_BADGE_CLASS}>2</span>
+        <div className="flex flex-col gap-2">
+          <p>
+            Come back here and finish setup. This runs the shortcut once and stores the
+            endpoint and token on your device (tap <strong>Allow</strong> if Shortcuts
+            asks for permission).
+          </p>
+          <a href={setupUrl} className={BUTTON_CLASS}>
+            Finish setup
+          </a>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+            The token is only shown once, so tap this before leaving the page. Keep the
+            shortcut named &ldquo;{SHORTCUT_NAME}&rdquo; — the button targets it by name.
+          </p>
+        </div>
+      </div>
+      <p>
+        Done: &ldquo;{SHORTCUT_NAME}&rdquo; shows up in the share sheet of any app that
+        shares a URL.
+      </p>
       <details>
         <summary className="cursor-pointer text-xs text-zinc-600 dark:text-zinc-400">
           Prefer to build the shortcut yourself? Manual setup
         </summary>
         <div className="mt-3 flex flex-col gap-4">
           <ManualSteps />
-          <CopyableRow
-            label="Request body JSON shape"
-            value={bodyShape}
-            hint='Use "url" as the key, then bind the value to the Shortcut Input variable.'
-          />
+          <ManualValues apiUrl={apiUrl} pat={pat} />
         </div>
       </details>
     </div>

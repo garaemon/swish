@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./bookmarklet": "./src/bookmarklet.ts",
+    "./shortcut": "./src/shortcut.ts",
     "./defaults": "./src/defaults.ts"
   },
   "scripts": {
