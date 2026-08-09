@@ -14,7 +14,7 @@ import { IosShortcutSetup } from './ios-shortcut-setup';
 
 export type TokenRow = TokenSummaryDto
 
-type Props = { initial: TokenRow[]; apiUrl: string }
+type Props = { initial: TokenRow[]; apiUrl: string; shortcutTemplateUrl?: string }
 
 type IssuedJwt = TokenIssueResponse & { name: string }
 
@@ -28,7 +28,7 @@ function formatDate(value: string | null): string {
   return Number.isNaN(parsedDate.getTime()) ? value : parsedDate.toLocaleString();
 }
 
-export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
+export function TokenList({ initial, apiUrl, shortcutTemplateUrl }: Props): React.JSX.Element {
   const [tokens, setTokens] = useState(initial);
   const [name, setName] = useState('');
   const [expiresInDays, setExpiresInDays] = useState<number>(DEFAULT_EXPIRES_IN_DAYS);
@@ -154,7 +154,11 @@ export function TokenList({ initial, apiUrl }: Props): React.JSX.Element {
           <p className="mt-1">
             <BookmarkletLink apiUrl={apiUrl} pat={justIssued.token} />
           </p>
-          <IosShortcutSetup apiUrl={apiUrl} pat={justIssued.token} />
+          <IosShortcutSetup
+            apiUrl={apiUrl}
+            pat={justIssued.token}
+            templateUrl={shortcutTemplateUrl}
+          />
         </div>
       ) : null}
 

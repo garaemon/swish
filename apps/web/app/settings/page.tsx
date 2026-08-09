@@ -68,7 +68,9 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
     lastUsedAt: row.last_used_at,
   }));
 
-  const apiUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
+  const serverEnv = getServerEnv();
+  const apiUrl = serverEnv.NEXT_PUBLIC_APP_URL;
+  const shortcutTemplateUrl = serverEnv.NEXT_PUBLIC_IOS_SHORTCUT_TEMPLATE_URL;
 
   return (
     <>
@@ -92,10 +94,13 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
             Issue a token to authenticate the CLI, the bookmarklet, or an iOS Shortcut.
             Tokens are shown once — store them in a password manager.
           </p>
-          <TokenList initial={tokens} apiUrl={apiUrl} />
+          <TokenList
+            initial={tokens}
+            apiUrl={apiUrl}
+            shortcutTemplateUrl={shortcutTemplateUrl}
+          />
         </section>
 
-        {/* iOS Shortcut setup lands in the next PR. */}
       </main>
     </>
   );
