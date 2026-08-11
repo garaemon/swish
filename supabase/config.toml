@@ -218,12 +218,19 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
-# Off on purpose: Google is the only self-service way into Swish, and it is
-# gated by ALLOWED_SIGNUP_EMAILS in app/auth/callback. Leaving email signup on
-# would let anyone holding the anon key POST /auth/v1/signup and walk straight
-# past that gate. Existing users still sign in with their password, and the
-# admin API (Dashboard, integration tests) still creates users.
-enable_signup = false
+#
+# Despite the name, this is the toggle for the whole email provider: setting it
+# to false makes GoTrue reject password *logins* too ("Email logins are
+# disabled", email_provider_disabled), not just signups. Leave it on.
+#
+# TODO (signup bypass): consequently anyone holding the anon key can POST
+# /auth/v1/signup and create an email+password account. ALLOWED_SIGNUP_EMAILS
+# (see app/auth/callback) only gates account creation through Google, so it
+# does not close this path. Pre-existing behaviour, accepted for now. Closing
+# it properly means a GoTrue before_user_created hook — a pg function that
+# rejects users whose provider is email — which also has to be enabled in the
+# Dashboard for the hosted project, not just here.
+enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true

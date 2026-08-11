@@ -121,9 +121,12 @@ of full addresses (`me@example.com`) or domains (`@example.com`):
   `/login` with an explanatory message.
 
 Existing users always sign in, whether or not their address is on the list.
-Email + password *signup* is disabled at the Supabase level, so Google is the
-only self-service way in; accounts can still be created by hand from the
-Supabase Dashboard:
+
+The allow-list covers Google sign-in only. Supabase still accepts email +
+password signups through its own API, so it is not a complete lock on account
+creation — see the `TODO (signup bypass)` note in `supabase/config.toml`.
+
+Accounts can also be created by hand from the Supabase Dashboard:
 
 1. Open Authentication → Users → "Add user" → "Create new user".
 2. Enter an email and password, and enable "Auto Confirm User".
@@ -157,6 +160,8 @@ project need their own OAuth client configuration.
 4. Production — `supabase/config.toml` does not reach the hosted project
    unless you run `supabase config push`, so configure it in the Dashboard:
    Authentication → Providers → Google (enable, paste the client ID and
-   secret), Authentication → Providers → Email (turn "Allow new users to sign
-   up" off), and Authentication → URL Configuration (Site URL =
+   secret) and Authentication → URL Configuration (Site URL =
    `NEXT_PUBLIC_APP_URL`, Redirect URLs += `https://<app-host>/**`).
+
+   Leave the Email provider enabled. Turning it off disables password
+   *sign-in* as well as signup, locking out every existing user.
