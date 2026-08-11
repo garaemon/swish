@@ -151,11 +151,16 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+# Matches NEXT_PUBLIC_APP_URL. Not cosmetic: the PKCE code verifier is stored
+# in a host-scoped cookie, so a flow started on localhost must come back to
+# localhost or the code exchange in app/auth/callback fails.
+site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# Both local hosts are listed because the OAuth button derives redirectTo from
+# window.location.origin, whichever of the two the developer happens to use.
+additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -213,6 +218,18 @@ web3 = 30
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
+#
+# Despite the name, this is the toggle for the whole email provider: setting it
+# to false makes GoTrue reject password *logins* too ("Email logins are
+# disabled", email_provider_disabled), not just signups. Leave it on.
+#
+# TODO (signup bypass): consequently anyone holding the anon key can POST
+# /auth/v1/signup and create an email+password account. ALLOWED_SIGNUP_EMAILS
+# (see app/auth/callback) only gates account creation through Google, so it
+# does not close this path. Pre-existing behaviour, accepted for now. Closing
+# it properly means a GoTrue before_user_created hook — a pg function that
+# rejects users whose provider is email — which also has to be enabled in the
+# Dashboard for the hosted project, not just here.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
@@ -327,6 +344,22 @@ url = ""
 # If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
 skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
+email_optional = false
+
+# Google sign-in. Both values are read from the shell environment when the
+# local stack starts; the hosted project is configured separately in the
+# Supabase Dashboard. See "Google sign-in setup" in README.md.
+[auth.external.google]
+enabled = true
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+redirect_uri = ""
+url = ""
+# Only relevant to the id_token flow. Swish uses the authorization-code flow
+# via signInWithOAuth, so the nonce check stays on.
+skip_nonce_check = false
+# Off: ALLOWED_SIGNUP_EMAILS can only gate an identity that has an address.
 email_optional = false
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.

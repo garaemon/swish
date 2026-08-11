@@ -20,6 +20,12 @@ const ServerEnvSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   NEXT_PUBLIC_APP_URL: z.url(),
   GEMINI_API_ENDPOINT: z.url().optional(),
+  // Comma-separated allow-list gating *new account creation* through Google
+  // sign-in. Entries are full addresses ("me@example.com") or domains
+  // ("@example.com"). Unset or empty means anyone may sign up. Existing users
+  // always sign in regardless of this value. Deliberately server-only: the
+  // list must not be inlined into the client bundle.
+  ALLOWED_SIGNUP_EMAILS: z.string().optional(),
 });
 
 const PublicEnvSchema = ServerEnvSchema.pick({

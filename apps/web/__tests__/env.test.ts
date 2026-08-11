@@ -9,6 +9,7 @@ const REQUIRED_ENV_KEYS = [
   'JWT_SECRET',
   'NEXT_PUBLIC_APP_URL',
   'GEMINI_API_ENDPOINT',
+  'ALLOWED_SIGNUP_EMAILS',
 ] as const;
 
 function setValidEnv(): void {
@@ -72,6 +73,14 @@ describe('getServerEnv', () => {
     process.env.GEMINI_API_ENDPOINT = 'https://example.test/v1/models';
     const env = getServerEnv();
     expect(env.GEMINI_API_ENDPOINT).toBe('https://example.test/v1/models');
+  });
+
+  it('leaves ALLOWED_SIGNUP_EMAILS undefined when unset and passes it through when set', () => {
+    setValidEnv();
+    expect(getServerEnv().ALLOWED_SIGNUP_EMAILS).toBeUndefined();
+    process.env.ALLOWED_SIGNUP_EMAILS = 'me@example.com,@example.org';
+    resetServerEnvCache();
+    expect(getServerEnv().ALLOWED_SIGNUP_EMAILS).toBe('me@example.com,@example.org');
   });
 });
 

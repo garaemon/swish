@@ -8,8 +8,9 @@ import { getServerEnv } from '@/lib/env';
 // deprecated, use proxy" warning — expected until OpenNext supports it. Revert
 // this file to `proxy.ts` once it does.
 
-// /auth is reserved for the Supabase OAuth callback path once OAuth is wired
-// up; harmless to keep listed because no app/auth/* route exists yet.
+// /auth covers the Supabase OAuth callback (app/auth/callback/route.ts). It
+// has to stay public: the caller holds no session until that handler trades
+// the authorization code for one.
 const PUBLIC_PATHS = ['/login', '/auth'];
 
 function isPublicPath(pathname: string): boolean {

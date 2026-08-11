@@ -5,8 +5,15 @@ import type { Database } from './types';
 
 /**
  * Creates a service-role Supabase client that bypasses RLS.
- * Restricted to server-side background work (pipeline runs). Never expose
- * to the request path where the user's identity must be enforced.
+ *
+ * Two sanctioned uses, both server-side:
+ *   - background work (pipeline runs), and
+ *   - request-path calls that are service-role-only by nature: PAT lookup in
+ *     lib/auth/pat.ts and the auth.admin.* calls in
+ *     lib/auth/oauth-signup-gate.ts.
+ *
+ * Never use it to read or write a user's rows on their behalf without
+ * filtering by user id explicitly — RLS is not there to catch the mistake.
  */
 export function createSupabaseServiceClient(): SupabaseClient<Database> {
   const env = getServerEnv();
