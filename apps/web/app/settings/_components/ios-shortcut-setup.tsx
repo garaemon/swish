@@ -63,6 +63,11 @@ export function IosShortcutSetup({ apiUrl, pat }: Props): React.JSX.Element {
         iOS Shortcut setup
       </summary>
       <div className="mt-3 flex flex-col gap-4">
+        <p className="text-zinc-600 dark:text-zinc-400">
+          If you have the native Swish iOS app installed you do not need this — sign in
+          there with your email and password instead. This Shortcut is the no-app
+          alternative.
+        </p>
         <p>
           On your iPhone / iPad, open <strong>Shortcuts</strong>, tap <strong>+</strong>, then
           add the following actions in order:

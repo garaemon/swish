@@ -30,6 +30,18 @@ export type TokenIssueResponse = {
   expiresAt: string
 }
 
+/**
+ * Body for POST /api/auth/token — how a native client (the iOS app) trades an
+ * email + password for a PAT. There is no expiresInDays counterpart to
+ * TokenIssueRequest here: the route is unauthenticated, so it fixes the
+ * lifetime server-side. The response is a TokenIssueResponse.
+ */
+export type DeviceLoginRequest = {
+  email: string
+  password: string
+  deviceName?: string
+}
+
 export type BookmarkCreateRequest = {
   url: string
   title?: string
