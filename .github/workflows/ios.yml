@@ -53,3 +53,18 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM=""
+
+      # Needs a concrete simulator rather than the generic destination. The
+      # model is whatever the runner image ships; adjust if a future image
+      # drops it.
+      - name: test
+        working-directory: apps/ios
+        run: |
+          xcodebuild test \
+            -project Swish.xcodeproj \
+            -scheme Swish \
+            -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""

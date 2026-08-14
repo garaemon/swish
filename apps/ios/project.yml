@@ -42,9 +42,36 @@ targets:
         INFOPLIST_FILE: Sources/App/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sources/App/Swish.entitlements
         GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - target: SwishShare
+        embed: true
+
+  SwishShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Sources/Shared
+      - Sources/Share
+    settings:
+      base:
+        # Must be the container app's identifier plus a suffix, or iOS refuses
+        # to install the extension.
+        PRODUCT_BUNDLE_IDENTIFIER: $(SWISH_BUNDLE_ID).share
+        INFOPLIST_FILE: Sources/Share/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/Share/SwishShare.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+
+  # Host-application-free bundle: everything under test is pure logic, so
+  # skipping the host app keeps the run fast.
+  SwishTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - Sources/Shared
+      - Tests
 
 # xcodegen creates no schemes by default, and `xcodebuild -scheme` needs a
-# shared one. Declaring it here is what makes CI able to build the project.
+# shared one. Declaring it here is what makes CI able to build and test.
 schemes:
   Swish:
     build:
@@ -52,5 +79,9 @@ schemes:
         Swish: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - SwishTests
     archive:
       config: Release
