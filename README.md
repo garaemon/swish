@@ -15,6 +15,7 @@ See [`Project_Blueprint_Swish.md`](Project_Blueprint_Swish.md) for the full desi
 ```
 swish/
 ├── apps/web/              Next.js app (OpenNext on Cloudflare Workers)
+├── apps/ios/              native iOS app + share extension (XcodeGen)
 ├── packages/              shared workspace packages (cli, shared)
 ├── supabase/              local stack config + SQL migrations
 ├── scripts/               helper scripts (db type generation)
@@ -23,6 +24,22 @@ swish/
 ├── pnpm-workspace.yaml    apps/* + packages/*
 └── Project_Blueprint_Swish.md
 ```
+
+## iOS app (share sheet)
+
+`apps/ios/` is a native app whose only feature is saving a shared link: pick
+Swish from any app's share sheet and the URL is posted to `/api/bookmarks` in
+the background.
+
+Sign-in is email + password — the same Supabase account the web app uses. The
+app trades those credentials once via `POST /api/auth/token` for a personal
+access token, keeps only the token (in a keychain item shared with the share
+extension), and never stores the password. Tokens appear under Settings →
+Personal access tokens on the web and can be revoked from either side.
+
+Building it needs macOS with Xcode and `brew install xcodegen`; the Xcode
+project is generated rather than committed. See
+[`apps/ios/README.md`](apps/ios/README.md).
 
 ## Prerequisites
 

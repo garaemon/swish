@@ -1,0 +1,56 @@
+name: Swish
+
+# Generated with `xcodegen generate`; Swish.xcodeproj is not committed.
+# Signing identifiers live in Config/Local.xcconfig, which is gitignored —
+# copy Config/Local.xcconfig.example and fill it in before generating.
+
+options:
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+# Project-level so every target inherits DEVELOPMENT_TEAM, SWISH_BUNDLE_ID
+# and APP_GROUP_ID. xcodegen fails loudly when the file is missing, which is
+# the intended nudge towards step 1 of apps/ios/README.md.
+configFiles:
+  Debug: Config/Local.xcconfig
+  Release: Config/Local.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1,2"
+
+targets:
+  Swish:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/Shared
+      - Sources/App
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(SWISH_BUNDLE_ID)
+        INFOPLIST_FILE: Sources/App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sources/App/Swish.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+
+# xcodegen creates no schemes by default, and `xcodebuild -scheme` needs a
+# shared one. Declaring it here is what makes CI able to build the project.
+schemes:
+  Swish:
+    build:
+      targets:
+        Swish: all
+    run:
+      config: Debug
+    archive:
+      config: Release

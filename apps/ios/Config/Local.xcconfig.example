@@ -1,0 +1,14 @@
+// Copy to Config/Local.xcconfig (gitignored) and fill in your own values
+// before running `xcodegen generate`.
+
+// Apple Developer team ID: Xcode → Settings → Accounts → your team.
+// Leave empty only for a simulator build with signing disabled (what CI does).
+DEVELOPMENT_TEAM =
+
+// Reverse-DNS identifier you own. The share extension appends ".share".
+SWISH_BUNDLE_ID = com.example.swish
+
+// App Group shared by the app and the share extension. Must start with
+// "group." and be registered to the same team. This doubles as the keychain
+// access group, which is how the extension reads the token the app stored.
+APP_GROUP_ID = group.com.example.swish
