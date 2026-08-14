@@ -66,7 +66,18 @@ the password. Tap **Test connection** to confirm; the token then shows up under
 Settings → Personal access tokens on the web, named after your device, and can
 be revoked from either side.
 
+## Tests
+
+Swift unit tests cover the pure logic: URL normalization, share-item
+extraction, and HTTP status mapping. Run them with ⌘U, or:
+
+```bash
+xcodebuild test -project Swish.xcodeproj -scheme Swish \
+  -destination 'platform=iOS Simulator,OS=latest,name=iPhone 16'
+```
+
 ## CI
 
-`.github/workflows/ios.yml` runs `xcodegen` and builds for the simulator with
-signing disabled, whenever anything under `apps/ios/` changes.
+`.github/workflows/ios.yml` runs `xcodegen`, builds for the simulator with
+signing disabled, and runs those tests, whenever anything under `apps/ios/`
+changes.
