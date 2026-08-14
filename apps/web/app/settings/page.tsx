@@ -94,8 +94,6 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
           </p>
           <TokenList initial={tokens} apiUrl={apiUrl} />
         </section>
-
-        {/* iOS Shortcut setup lands in the next PR. */}
       </main>
     </>
   );

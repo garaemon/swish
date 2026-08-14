@@ -89,6 +89,14 @@ mise exec -- supabase db push
 
 `supabase db push --dry-run` lists pending migrations without applying them.
 
+### Rate limiting `/api/auth/token`
+
+`POST /api/auth/token` trades an email + password for a personal access token
+so native clients can sign in. Supabase's own per-IP sign-in limit sees the
+Worker's egress IP rather than the caller's, which collapses it into one bucket
+shared by every request. Add a Cloudflare WAF rate-limiting rule on that path
+(for example 10 requests per minute per IP) when deploying publicly.
+
 ### Build and deploy
 
 Build, preview locally on workerd, and deploy:
