@@ -1,0 +1,55 @@
+name: ios
+
+# Separate from ci.yml because this needs a macOS runner with Xcode. The paths
+# filter keeps a ~5 minute Xcode build off pull requests that only touch
+# TypeScript.
+on:
+  pull_request:
+    paths:
+      - 'apps/ios/**'
+      - '.github/workflows/ios.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/ios/**'
+      - '.github/workflows/ios.yml'
+
+concurrency:
+  group: ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: xcodegen + build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: brew install xcodegen
+
+      # project.yml points at Config/Local.xcconfig, which is gitignored
+      # because it carries the developer's team id. The example's placeholder
+      # bundle ids are fine here: the build below disables signing, so nothing
+      # is ever resolved against a real Apple team.
+      - name: seed local xcconfig
+        working-directory: apps/ios
+        run: cp Config/Local.xcconfig.example Config/Local.xcconfig
+
+      - name: xcodegen generate
+        working-directory: apps/ios
+        run: xcodegen generate
+
+      # Simulator destination plus explicit signing overrides: no certificate
+      # and no provisioning profile are needed, and the command-line settings
+      # beat whatever the xcconfig supplies.
+      - name: build
+        working-directory: apps/ios
+        run: |
+          xcodebuild build \
+            -project Swish.xcodeproj \
+            -scheme Swish \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM=""
