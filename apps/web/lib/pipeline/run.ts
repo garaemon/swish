@@ -1,17 +1,15 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { and, eq } from 'drizzle-orm';
 import {
   DEFAULT_AI_MODEL,
   DEFAULT_AI_SUMMARY_LANGUAGE,
 } from '@swish/shared/defaults';
 import { getMarkdownConverter } from '@/lib/cloudflare/markdown-converter';
 import { decryptString } from '@/lib/crypto/aes';
-import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import type { Database } from '@/lib/supabase/types';
+import { getDb, type Db } from '@/lib/db';
+import { items, userSettings } from '@/lib/db/schema';
 import { scrapeUrl, type MarkdownConverter } from './scrape';
 import { markCompleted, markFailed, markProcessing } from './status';
 import { summarize } from './summarize';
-
-type Client = SupabaseClient<Database>
 
 export type RunPipelineInput = {
   itemId: string
@@ -29,8 +27,9 @@ type ResolvedAiSettings = {
  * Orchestrates the background bookmark pipeline:
  *   pending -> processing -> (scrape + summarize) -> completed | failed
  *
- * Uses the service-role client because it runs detached from the request.
- * Every read and write filters by both itemId and userId so that even if
+ * Runs detached from the request (via after()), so it cannot rely on the
+ * caller's session. Every read and write filters by both itemId and userId
+ * so that even if
  * a future caller invokes runPipeline with a mismatched pair the pipeline
  * cannot mutate another user's data. (Defense in depth: the API routes
  * that schedule the pipeline already verify ownership.)
@@ -39,10 +38,10 @@ export async function runPipeline(
   input: RunPipelineInput,
   converter?: MarkdownConverter,
 ): Promise<void> {
-  const supabase = createSupabaseServiceClient();
+  const db = await getDb();
   try {
-    await markProcessing(supabase, input.itemId, input.userId);
-    const url = await loadItemUrl(supabase, input.itemId, input.userId);
+    await markProcessing(db, input.itemId, input.userId);
+    const url = await loadItemUrl(db, input.itemId, input.userId);
     // Item may have been deleted between scheduling and running. Skip
     // silently in that case rather than recording a misleading 'failed'.
     if (url === null) {
@@ -58,10 +57,10 @@ export async function runPipeline(
     // wasted work in the unhappy path is bounded to one scrape.
     const [article, settings] = await Promise.all([
       scrapeUrl(url, markdownConverter),
-      loadDecryptedSettings(supabase, input.userId),
+      loadDecryptedSettings(db, input.userId),
     ]);
     await persistScrape(
-      supabase,
+      db,
       input.itemId,
       input.userId,
       article.title,
@@ -75,90 +74,77 @@ export async function runPipeline(
       model: settings.aiModel,
     });
     await persistSummary(
-      supabase,
+      db,
       input.itemId,
       input.userId,
       summary.summaryShort,
       summary.summaryLong,
     );
-    await markCompleted(supabase, input.itemId, input.userId);
+    await markCompleted(db, input.itemId, input.userId);
   } catch (cause) {
     // The item may have been deleted while the pipeline was running;
     // markFailed will then update zero rows, which is benign.
-    await markFailed(supabase, input.itemId, input.userId, cause);
+    await markFailed(db, input.itemId, input.userId, cause);
   }
 }
 
-async function loadItemUrl(
-  supabase: Client,
-  itemId: string,
-  userId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('items')
-    .select('url')
-    .eq('id', itemId)
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error) {
-    throw error;
-  }
-  return data?.url ?? null;
+function ownedItem(itemId: string, userId: string) {
+  return and(eq(items.id, itemId), eq(items.userId, userId));
+}
+
+async function loadItemUrl(db: Db, itemId: string, userId: string): Promise<string | null> {
+  const row = await db
+    .select({ url: items.url })
+    .from(items)
+    .where(ownedItem(itemId, userId))
+    .get();
+  return row?.url ?? null;
 }
 
 async function persistScrape(
-  supabase: Client,
+  db: Db,
   itemId: string,
   userId: string,
   title: string | null,
   content: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('items')
-    .update({ title, content_text: content })
-    .eq('id', itemId)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+  await db
+    .update(items)
+    .set({ title, contentText: content })
+    .where(ownedItem(itemId, userId));
 }
 
-async function loadDecryptedSettings(
-  supabase: Client,
-  userId: string,
-): Promise<ResolvedAiSettings> {
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error) {
-    throw error;
-  }
-  if (!data?.encrypted_api_key) {
+async function loadDecryptedSettings(db: Db, userId: string): Promise<ResolvedAiSettings> {
+  const row = await db
+    .select({
+      aiModel: userSettings.aiModel,
+      aiSummaryLanguage: userSettings.aiSummaryLanguage,
+      aiCustomPrompt: userSettings.aiCustomPrompt,
+      encryptedApiKey: userSettings.encryptedApiKey,
+    })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .get();
+  if (!row?.encryptedApiKey) {
     throw new Error('No API key configured for user — set one in /settings');
   }
   return {
-    apiKey: decryptString(data.encrypted_api_key),
-    aiModel: data.ai_model ?? DEFAULT_AI_MODEL,
-    outputLanguage: data.ai_summary_language ?? DEFAULT_AI_SUMMARY_LANGUAGE,
-    customPrompt: data.ai_custom_prompt ?? null,
+    apiKey: decryptString(row.encryptedApiKey),
+    aiModel: row.aiModel ?? DEFAULT_AI_MODEL,
+    outputLanguage: row.aiSummaryLanguage ?? DEFAULT_AI_SUMMARY_LANGUAGE,
+    customPrompt: row.aiCustomPrompt ?? null,
   };
 }
 
 async function persistSummary(
-  supabase: Client,
+  db: Db,
   itemId: string,
   userId: string,
   short: string,
   long: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('items')
-    .update({ summary_short: short, summary_long: long })
-    .eq('id', itemId)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+  await db
+    .update(items)
+    .set({ summaryShort: short, summaryLong: long })
+    .where(ownedItem(itemId, userId));
 }

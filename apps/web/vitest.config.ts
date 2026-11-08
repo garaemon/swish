@@ -1,7 +1,5 @@
-// Unit-test config (no DB / network access). Integration tests are added
-// in a later PR with their own config; the exclude below is set up here
-// so a future `__tests__/integration` folder is automatically kept out of
-// the unit run.
+// Test config. No network or external services: database-backed tests use
+// an in-memory D1 (Miniflare) built by __tests__/helpers/d1.ts.
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 
@@ -19,7 +17,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['__tests__/**/*.test.ts', '__tests__/**/*.test.tsx'],
-    exclude: ['__tests__/**/integration/**'],
     globals: false,
+    // Miniflare boots a workerd process per test database.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
   },
 });

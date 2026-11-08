@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
+import { and, desc, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { Nav } from '@/app/_components/nav';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getSessionUser } from '@/lib/auth/session';
+import { getDb } from '@/lib/db';
+import { items as itemsTable } from '@/lib/db/schema';
 import { AddUrlModal } from './_components/add-url-modal';
 import { ItemRow, type InboxItem } from './_components/item-row';
 
@@ -12,49 +15,44 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage(): Promise<React.JSX.Element> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) {
     redirect('/login');
   }
 
-  const { data, error } = await supabase
-    .from('items')
-    .select(
-      'id, url, title, summary_short, process_status, error_message, source_type, created_at',
-    )
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-    .order('created_at', { ascending: false })
-    // TODO: cursor pagination once the inbox grows past 200 rows. Today
-    // the dashboard silently drops anything beyond this limit.
-    .limit(200);
-
-  if (error) {
+  let rows;
+  try {
+    const db = await getDb();
+    rows = await db
+      .select({
+        id: itemsTable.id,
+        url: itemsTable.url,
+        title: itemsTable.title,
+        summaryShort: itemsTable.summaryShort,
+        processStatus: itemsTable.processStatus,
+        errorMessage: itemsTable.errorMessage,
+        sourceType: itemsTable.sourceType,
+        createdAt: itemsTable.createdAt,
+      })
+      .from(itemsTable)
+      .where(and(eq(itemsTable.userId, user.userId), eq(itemsTable.isRead, false)))
+      .orderBy(desc(itemsTable.createdAt))
+      // TODO: cursor pagination once the inbox grows past 200 rows. Today
+      // the dashboard silently drops anything beyond this limit.
+      .limit(200);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return (
       <>
         <Nav />
         <main className="mx-auto w-full max-w-3xl px-6 py-12">
-          <p className="text-red-600">Failed to load inbox: {error.message}</p>
+          <p className="text-red-600">Failed to load inbox: {message}</p>
         </main>
       </>
     );
   }
 
-  const items: InboxItem[] = (data ?? []).map((row) => ({
-    id: row.id,
-    url: row.url,
-    title: row.title,
-    summaryShort: row.summary_short,
-    // DB CHECK guarantees a valid status; the generated type is nullable
-    // because the column has a default.
-    processStatus: row.process_status ?? 'pending',
-    errorMessage: row.error_message,
-    sourceType: row.source_type,
-    createdAt: row.created_at as string,
-  }));
+  const items: InboxItem[] = rows;
 
   return (
     <>

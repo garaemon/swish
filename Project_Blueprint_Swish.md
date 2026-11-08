@@ -27,15 +27,24 @@ easy to maintain."
 * **Language:** TypeScript
 * **Framework:** Next.js (App Router)
 * **Infrastructure:** Vercel (background processing via `waitUntil`)
-* **BaaS (DB / Auth):** Supabase (PostgreSQL, GoTrue Auth)
+* **DB / Auth:** Cloudflare D1 (SQLite, via Drizzle ORM) + Better Auth
+  (email + password). Originally Supabase (PostgreSQL, GoTrue Auth); migrated
+  to keep the whole stack on Cloudflare.
 * **AI:** Gemini API (default model: `gemini-3.1-flash-light`)
   * **BYOK (Bring Your Own Key):** the user supplies their own API key.
 * **Scraping:** `@mozilla/readability`, `jsdom`
 
 ## **3\. Database Design**
 
-Lean on Supabase (PostgreSQL) relational structure and RLS as much as
-possible.
+> **Note:** the SQL below is the original Supabase/PostgreSQL design. The
+> current source of truth is `apps/web/lib/db/schema.ts` (D1 / SQLite) with
+> migrations in `apps/web/migrations`. D1 has no RLS, so every query filters
+> by `user_id` in application code; `profiles` was replaced by Better Auth's
+> `user` table, and the `handle_new_user` trigger by a Better Auth
+> `databaseHooks.user.create.after` hook.
+
+Originally: lean on Supabase (PostgreSQL) relational structure and RLS as
+much as possible.
 
 ### **3.1 Table definitions**
 
@@ -200,7 +209,7 @@ CREATE TRIGGER on_auth_user_created
 
 ### **4.1 Authentication strategy (hybrid)**
 
-* **Web UI:** standard Supabase cookie session.
+* **Web UI:** Better Auth cookie session (originally Supabase).
 * **External tools (iOS Shortcuts, CLI, bookmarklet):** JWT-based
   Personal Access Token (PAT) auth.
   * Sent as `Authorization: Bearer <JWT>`.

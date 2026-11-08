@@ -6,7 +6,8 @@
  * cookie or `Authorization: Bearer <PAT>`.
  */
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
+import { revokePat } from '@/lib/auth/pat';
+import { getDb } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -19,18 +20,10 @@ export async function DELETE(request: Request, context: Context): Promise<Respon
     if (!id) {
       return Response.json({ error: 'missing id' }, { status: 400 });
     }
-    const supabase = await getSupabaseForUser(user);
-    // Delete + returning so we can distinguish "revoked" from "no such id".
-    const { data, error } = await supabase
-      .from('personal_access_tokens')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.userId)
-      .select('id');
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
-    if (!data || data.length === 0) {
+    // revokePat deletes with RETURNING so we can distinguish "revoked" from
+    // "no such id".
+    const revoked = await revokePat(id, user.userId, await getDb());
+    if (!revoked) {
       return Response.json({ error: 'not_found' }, { status: 404 });
     }
     return Response.json({ ok: true });

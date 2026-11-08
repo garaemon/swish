@@ -4,9 +4,11 @@
  * Both endpoints accept cookie or `Authorization: Bearer <PAT>`.
  */
 import type { TokenSummaryDto } from '@swish/shared';
+import { desc, eq } from 'drizzle-orm';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
 import { issuePat } from '@/lib/auth/pat';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
+import { getDb } from '@/lib/db';
+import { personalAccessTokens } from '@/lib/db/schema';
 import { TokenCreateSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
@@ -14,24 +16,26 @@ export const runtime = 'nodejs';
 export async function GET(request: Request): Promise<Response> {
   try {
     const user = await requireUser(request);
-    const supabase = await getSupabaseForUser(user);
-    const { data, error } = await supabase
-      .from('personal_access_tokens')
-      .select('id, name, created_at, expires_at, last_used_at')
-      .eq('user_id', user.userId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
+    const db = await getDb();
+    let tokens: TokenSummaryDto[];
+    try {
+      tokens = await db
+        .select({
+          id: personalAccessTokens.id,
+          name: personalAccessTokens.name,
+          createdAt: personalAccessTokens.createdAt,
+          expiresAt: personalAccessTokens.expiresAt,
+          lastUsedAt: personalAccessTokens.lastUsedAt,
+        })
+        .from(personalAccessTokens)
+        .where(eq(personalAccessTokens.userId, user.userId))
+        .orderBy(desc(personalAccessTokens.createdAt));
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : 'failed to load tokens' },
+        { status: 500 },
+      );
     }
-    const tokens: TokenSummaryDto[] = (data ?? []).map((row) => ({
-      id: row.id,
-      name: row.name,
-      // DB default `now()` guarantees created_at; the generated type is
-      // nullable. See identical rationale in /api/items.
-      createdAt: row.created_at as string,
-      expiresAt: row.expires_at,
-      lastUsedAt: row.last_used_at,
-    }));
     return Response.json({ tokens });
   } catch (err) {
     if (err instanceof UnauthorizedError) {
@@ -52,12 +56,11 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400 },
       );
     }
-    const supabase = await getSupabaseForUser(user);
     const issued = await issuePat({
       userId: user.userId,
       name: parsed.data.name,
       expiresInDays: parsed.data.expiresInDays,
-      supabase,
+      db: await getDb(),
     });
     return Response.json(issued, { status: 201 });
   } catch (err) {

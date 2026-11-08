@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { and, asc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Nav } from '@/app/_components/nav';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { TagEditor, type TagBadge } from './_components/tag-editor';
+import { getSessionUser } from '@/lib/auth/session';
+import { getDb } from '@/lib/db';
+import { items, itemTags, tags as tagsTable } from '@/lib/db/schema';
+import { TagEditor } from './_components/tag-editor';
 
 export const metadata: Metadata = {
   title: 'Reading view — Swish',
@@ -15,41 +18,42 @@ type Params = { params: Promise<{ id: string }> }
 
 export default async function ItemPage({ params }: Params): Promise<React.JSX.Element> {
   const { id } = await params;
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) {
     redirect('/login');
   }
+  const db = await getDb();
 
   // Both queries are gated on `id` (the URL param). They do not share data,
-  // so issue them in parallel to halve the reading-view roundtrip cost.
-  const [itemResult, itemTagsResult] = await Promise.all([
-    supabase
-      .from('items')
-      .select(
-        'id, url, title, summary_long, content_text, process_status, error_message, created_at',
-      )
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-    supabase
-      .from('item_tags')
-      .select('tag:tags(id, name)')
-      .eq('item_id', id),
+  // so issue them in parallel to halve the reading-view roundtrip cost. The
+  // tag query joins through tags.user_id so another user's tag rows can
+  // never surface here even though D1 has no row-level security.
+  const [item, tags] = await Promise.all([
+    db
+      .select({
+        id: items.id,
+        url: items.url,
+        title: items.title,
+        summaryLong: items.summaryLong,
+        contentText: items.contentText,
+        processStatus: items.processStatus,
+        errorMessage: items.errorMessage,
+        createdAt: items.createdAt,
+      })
+      .from(items)
+      .where(and(eq(items.id, id), eq(items.userId, user.userId)))
+      .get(),
+    db
+      .select({ id: tagsTable.id, name: tagsTable.name })
+      .from(itemTags)
+      .innerJoin(tagsTable, eq(itemTags.tagId, tagsTable.id))
+      .where(and(eq(itemTags.itemId, id), eq(tagsTable.userId, user.userId)))
+      .orderBy(asc(tagsTable.name)),
   ]);
 
-  const item = itemResult.data;
   if (!item) {
     notFound();
   }
-  const itemTags = itemTagsResult.data;
-
-  const tags: TagBadge[] = (itemTags ?? [])
-    .map((row) => row.tag)
-    .filter((tag): tag is { id: string; name: string } => Boolean(tag))
-    .map((tag) => ({ id: tag.id, name: tag.name }));
 
   return (
     <>
@@ -72,17 +76,17 @@ export default async function ItemPage({ params }: Params): Promise<React.JSX.El
           </a>
         </header>
 
-        {item.process_status === 'failed' && item.error_message ? (
+        {item.processStatus === 'failed' && item.errorMessage ? (
           <p className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-            Pipeline failed: {item.error_message}
+            Pipeline failed: {item.errorMessage}
           </p>
         ) : null}
 
-        {item.summary_long ? (
+        {item.summaryLong ? (
           <section>
             <h2 className="mb-2 text-lg font-medium">Summary</h2>
             <pre className="whitespace-pre-wrap rounded-md border border-zinc-200 bg-white p-4 text-sm leading-6 dark:border-zinc-800 dark:bg-zinc-900">
-              {item.summary_long}
+              {item.summaryLong}
             </pre>
           </section>
         ) : null}
@@ -92,11 +96,11 @@ export default async function ItemPage({ params }: Params): Promise<React.JSX.El
           <TagEditor itemId={item.id} initial={tags} />
         </section>
 
-        {item.content_text ? (
+        {item.contentText ? (
           <section>
             <h2 className="mb-2 text-lg font-medium">Article</h2>
             <div className="whitespace-pre-wrap rounded-md border border-zinc-200 bg-white p-4 text-sm leading-6 dark:border-zinc-800 dark:bg-zinc-900">
-              {item.content_text}
+              {item.contentText}
             </div>
           </section>
         ) : null}

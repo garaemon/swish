@@ -8,18 +8,18 @@ vi.mock('@/lib/auth/pat', () => ({
   verifyPat: vi.fn(),
 }));
 
-vi.mock('@/lib/supabase/service', () => ({
-  createSupabaseServiceClient: vi.fn(() => ({})),
+vi.mock('@/lib/db', () => ({
+  getDb: vi.fn(async () => ({})),
 }));
 
 import { getSessionUser } from '@/lib/auth/session';
 import { verifyPat } from '@/lib/auth/pat';
-import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { getDb } from '@/lib/db';
 import { requireUser, UnauthorizedError } from '@/lib/auth/guard';
 
 const mockGetSessionUser = vi.mocked(getSessionUser);
 const mockVerifyPat = vi.mocked(verifyPat);
-const mockCreateService = vi.mocked(createSupabaseServiceClient);
+const mockGetDb = vi.mocked(getDb);
 
 function requestWithHeaders(headers: Record<string, string> = {}): Request {
   return new Request('http://localhost/api/items', { headers });
@@ -29,7 +29,7 @@ describe('requireUser (cookie + PAT)', () => {
   beforeEach(() => {
     mockGetSessionUser.mockReset();
     mockVerifyPat.mockReset();
-    mockCreateService.mockClear();
+    mockGetDb.mockClear();
   });
 
   it('uses Bearer PAT when Authorization header is present', async () => {
@@ -39,9 +39,7 @@ describe('requireUser (cookie + PAT)', () => {
     );
     expect(result).toEqual({ userId: 'pat-user', via: 'pat' });
     expect(mockGetSessionUser).not.toHaveBeenCalled();
-    // Guard must pass the service-role client into verifyPat so the
-    // lookup against personal_access_tokens is not blocked by RLS.
-    expect(mockCreateService).toHaveBeenCalledTimes(1);
+    expect(mockGetDb).toHaveBeenCalledTimes(1);
   });
 
   it('throws UnauthorizedError when PAT verification fails', async () => {
@@ -56,9 +54,13 @@ describe('requireUser (cookie + PAT)', () => {
       userId: 'cookie-user',
       email: 'me@example.test',
     });
-    const result = await requireUser(requestWithHeaders());
+    const request = requestWithHeaders({ cookie: 'better-auth.session_token=x' });
+    const result = await requireUser(request);
     expect(result).toEqual({ userId: 'cookie-user', via: 'cookie' });
     expect(mockVerifyPat).not.toHaveBeenCalled();
+    // The request's own headers are forwarded so route handlers do not
+    // depend on next/headers.
+    expect(mockGetSessionUser).toHaveBeenCalledWith(request.headers);
   });
 
   it('throws when neither cookie nor PAT is available', async () => {

@@ -4,7 +4,7 @@
  *                     only its presence is signalled.
  * PUT /api/settings   Partial update. apiKey is AES-256-GCM encrypted
  *                     before being stored. Uses upsert so it works even
- *                     if handle_new_user did not seed the row.
+ *                     if the sign-up hook did not seed the row.
  * Authenticated via cookie or `Authorization: Bearer <PAT>`.
  */
 import {
@@ -12,9 +12,11 @@ import {
   DEFAULT_AI_PROVIDER,
   DEFAULT_AI_SUMMARY_LANGUAGE,
 } from '@swish/shared/defaults';
+import { eq } from 'drizzle-orm';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
 import { encryptString } from '@/lib/crypto/aes';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
+import { getDb } from '@/lib/db';
+import { userSettings } from '@/lib/db/schema';
 import { SettingsUpdateSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
@@ -30,21 +32,32 @@ export type SettingsResponse = {
 export async function GET(request: Request): Promise<Response> {
   try {
     const user = await requireUser(request);
-    const supabase = await getSupabaseForUser(user);
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('ai_provider, ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
-      .eq('user_id', user.userId)
-      .maybeSingle();
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
+    const db = await getDb();
+    let data;
+    try {
+      data = await db
+        .select({
+          aiProvider: userSettings.aiProvider,
+          aiModel: userSettings.aiModel,
+          aiSummaryLanguage: userSettings.aiSummaryLanguage,
+          aiCustomPrompt: userSettings.aiCustomPrompt,
+          encryptedApiKey: userSettings.encryptedApiKey,
+        })
+        .from(userSettings)
+        .where(eq(userSettings.userId, user.userId))
+        .get();
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : 'failed to load settings' },
+        { status: 500 },
+      );
     }
     const body: SettingsResponse = {
-      aiProvider: data?.ai_provider ?? DEFAULT_AI_PROVIDER,
-      aiModel: data?.ai_model ?? DEFAULT_AI_MODEL,
-      aiSummaryLanguage: data?.ai_summary_language ?? DEFAULT_AI_SUMMARY_LANGUAGE,
-      aiCustomPrompt: data?.ai_custom_prompt ?? null,
-      hasApiKey: Boolean(data?.encrypted_api_key),
+      aiProvider: data?.aiProvider ?? DEFAULT_AI_PROVIDER,
+      aiModel: data?.aiModel ?? DEFAULT_AI_MODEL,
+      aiSummaryLanguage: data?.aiSummaryLanguage ?? DEFAULT_AI_SUMMARY_LANGUAGE,
+      aiCustomPrompt: data?.aiCustomPrompt ?? null,
+      hasApiKey: Boolean(data?.encryptedApiKey),
     };
     return Response.json(body);
   } catch (err) {
@@ -67,44 +80,47 @@ export async function PUT(request: Request): Promise<Response> {
       );
     }
     const update: {
-      ai_provider?: string
-      ai_model?: string
-      ai_summary_language?: string
-      ai_custom_prompt?: string | null
-      encrypted_api_key?: string
+      aiProvider?: string
+      aiModel?: string
+      aiSummaryLanguage?: string
+      aiCustomPrompt?: string | null
+      encryptedApiKey?: string
     } = {};
     if (parsed.data.aiProvider !== undefined) {
-      update.ai_provider = parsed.data.aiProvider;
+      update.aiProvider = parsed.data.aiProvider;
     }
     if (parsed.data.aiModel !== undefined) {
-      update.ai_model = parsed.data.aiModel;
+      update.aiModel = parsed.data.aiModel;
     }
     if (parsed.data.aiSummaryLanguage !== undefined) {
-      update.ai_summary_language = parsed.data.aiSummaryLanguage;
+      update.aiSummaryLanguage = parsed.data.aiSummaryLanguage;
     }
     if (parsed.data.aiCustomPrompt !== undefined) {
-      update.ai_custom_prompt = parsed.data.aiCustomPrompt;
+      update.aiCustomPrompt = parsed.data.aiCustomPrompt;
     }
     if (parsed.data.apiKey !== undefined) {
-      update.encrypted_api_key = encryptString(parsed.data.apiKey);
+      update.encryptedApiKey = encryptString(parsed.data.apiKey);
     }
     if (Object.keys(update).length === 0) {
       // No-op PUT (all fields omitted). Skip the DB round-trip; the
       // updated:0 response shape lets clients distinguish a real save.
       return Response.json({ ok: true, updated: 0 });
     }
-    const supabase = await getSupabaseForUser(user);
-    // upsert keeps PUT independent of the handle_new_user trigger that
-    // normally seeds the user_settings row at signup. If that trigger
-    // ever changes, settings still write correctly.
-    const { error } = await supabase
-      .from('user_settings')
-      .upsert(
-        { user_id: user.userId, ...update },
-        { onConflict: 'user_id' },
+    const db = await getDb();
+    // upsert keeps PUT independent of the sign-up hook that normally seeds
+    // the user_settings row. If that hook ever changes, settings still
+    // write correctly.
+    const changes = { ...update, updatedAt: new Date().toISOString() };
+    try {
+      await db
+        .insert(userSettings)
+        .values({ userId: user.userId, ...changes })
+        .onConflictDoUpdate({ target: userSettings.userId, set: changes });
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : 'failed to save settings' },
+        { status: 500 },
       );
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
     }
     return Response.json({ ok: true, updated: Object.keys(update).length });
   } catch (err) {

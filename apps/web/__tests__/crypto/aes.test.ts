@@ -6,9 +6,7 @@ import { resetServerEnvCache } from '@/lib/env';
 const originalEnv = { ...process.env };
 
 function setValidEnv(): void {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
+  process.env.BETTER_AUTH_SECRET = 'a-very-long-better-auth-secret-of-32-chars';
   process.env.MASTER_KEY = randomBytes(32).toString('base64');
   process.env.JWT_SECRET = 'a-very-long-jwt-secret-of-at-least-32-chars';
   process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';

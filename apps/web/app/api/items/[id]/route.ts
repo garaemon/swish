@@ -5,8 +5,10 @@
  * cross-tenant existence undetectable). Authenticated via cookie or
  * `Authorization: Bearer <PAT>`.
  */
+import { and, eq } from 'drizzle-orm';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
+import { getDb } from '@/lib/db';
+import { items } from '@/lib/db/schema';
 
 export const runtime = 'nodejs';
 
@@ -19,17 +21,12 @@ export async function DELETE(request: Request, context: Context): Promise<Respon
     if (!id) {
       return Response.json({ error: 'missing id' }, { status: 400 });
     }
-    const supabase = await getSupabaseForUser(user);
-    const { data, error } = await supabase
-      .from('items')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.userId)
-      .select('id');
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
-    if (!data || data.length === 0) {
+    const db = await getDb();
+    const deleted = await db
+      .delete(items)
+      .where(and(eq(items.id, id), eq(items.userId, user.userId)))
+      .returning({ id: items.id });
+    if (deleted.length === 0) {
       return Response.json({ error: 'not_found' }, { status: 404 });
     }
     return Response.json({ ok: true });

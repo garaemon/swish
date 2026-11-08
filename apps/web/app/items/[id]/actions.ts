@@ -1,59 +1,42 @@
 'use server';
 
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { requireSessionUserId } from '@/lib/auth/session';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Database } from '@/lib/supabase/types';
+import { getDb, type Db } from '@/lib/db';
+import { items, itemTags, tags } from '@/lib/db/schema';
 
-type Client = SupabaseClient<Database>
-
-async function ensureTag(
-  supabase: Client,
-  userId: string,
-  name: string,
-): Promise<string> {
+async function ensureTag(db: Db, userId: string, name: string): Promise<string> {
   const trimmed = name.trim();
   if (trimmed === '') {
     throw new Error('tag name must not be empty');
   }
   // Upsert by (user_id, name) — the unique constraint makes this atomic and
-  // avoids the select-then-insert race that would otherwise produce 23505
-  // on two near-simultaneous "Add tag X" actions.
-  const { data, error } = await supabase
-    .from('tags')
-    .upsert(
-      { user_id: userId, name: trimmed },
-      { onConflict: 'user_id,name', ignoreDuplicates: false },
-    )
-    .select('id')
-    .single();
-  if (error || !data) {
-    throw error ?? new Error('failed to upsert tag');
+  // avoids the select-then-insert race that would otherwise raise a UNIQUE
+  // violation on two near-simultaneous "Add tag X" actions. The no-op SET is
+  // what makes RETURNING yield the existing row on conflict.
+  const [row] = await db
+    .insert(tags)
+    .values({ userId, name: trimmed })
+    .onConflictDoUpdate({ target: [tags.userId, tags.name], set: { name: trimmed } })
+    .returning({ id: tags.id });
+  if (!row) {
+    throw new Error('failed to upsert tag');
   }
-  return data.id;
+  return row.id;
 }
 
-// addTag / removeTag both rely on the cookie-scoped Supabase client whose
-// RLS policy on item_tags requires the parent item to belong to auth.uid().
-// To make the safety local (so a future migration to PAT-scoped server
-// actions does not silently widen access), each function verifies the
-// parent item ownership before touching item_tags.
-async function assertItemOwned(
-  supabase: Client,
-  userId: string,
-  itemId: string,
-): Promise<void> {
-  const { data, error } = await supabase
-    .from('items')
-    .select('id')
-    .eq('id', itemId)
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error) {
-    throw error;
-  }
-  if (!data) {
+// D1 has no row-level security, so each function verifies parent item
+// ownership before touching item_tags. Tag ids are likewise only accepted
+// when they belong to the caller (ensureTag scopes by user, removeTag filters
+// on the item which is already verified to be the caller's).
+async function assertItemOwned(db: Db, userId: string, itemId: string): Promise<void> {
+  const row = await db
+    .select({ id: items.id })
+    .from(items)
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)))
+    .get();
+  if (!row) {
     throw new Error('item not found');
   }
 }
@@ -65,30 +48,20 @@ async function assertItemOwned(
  */
 export async function addTag(itemId: string, tagName: string): Promise<{ tagId: string }> {
   const userId = await requireSessionUserId();
-  const supabase = await createSupabaseServerClient();
-  await assertItemOwned(supabase, userId, itemId);
-  const tagId = await ensureTag(supabase, userId, tagName);
-  const { error } = await supabase
-    .from('item_tags')
-    .upsert({ item_id: itemId, tag_id: tagId }, { onConflict: 'item_id,tag_id' });
-  if (error) {
-    throw error;
-  }
+  const db = await getDb();
+  await assertItemOwned(db, userId, itemId);
+  const tagId = await ensureTag(db, userId, tagName);
+  await db.insert(itemTags).values({ itemId, tagId }).onConflictDoNothing();
   revalidatePath(`/items/${itemId}`);
   return { tagId };
 }
 
 export async function removeTag(itemId: string, tagId: string): Promise<void> {
   const userId = await requireSessionUserId();
-  const supabase = await createSupabaseServerClient();
-  await assertItemOwned(supabase, userId, itemId);
-  const { error } = await supabase
-    .from('item_tags')
-    .delete()
-    .eq('item_id', itemId)
-    .eq('tag_id', tagId);
-  if (error) {
-    throw error;
-  }
+  const db = await getDb();
+  await assertItemOwned(db, userId, itemId);
+  await db
+    .delete(itemTags)
+    .where(and(eq(itemTags.itemId, itemId), eq(itemTags.tagId, tagId)));
   revalidatePath(`/items/${itemId}`);
 }

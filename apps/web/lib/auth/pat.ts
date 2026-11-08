@@ -1,5 +1,7 @@
+import { and, eq } from 'drizzle-orm';
 import { SignJWT, jwtVerify } from 'jose';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Db } from '@/lib/db';
+import { personalAccessTokens } from '@/lib/db/schema';
 import { getServerEnv } from '@/lib/env';
 
 const JWT_ALG = 'HS256';
@@ -25,7 +27,7 @@ export type IssuePatInput = {
   userId: string
   name: string
   expiresInDays: number
-  supabase: SupabaseClient
+  db: Db
 }
 
 export type IssuePatResult = {
@@ -42,37 +44,29 @@ function loadJwtSecret(): Uint8Array {
  * Issues a PAT bound to a fresh row in personal_access_tokens. The raw JWT
  * is returned exactly once; only the row id (= jti) is persisted.
  *
- * TODO: if SignJWT throws after the insert, the row stays in
- * personal_access_tokens without ever being handed to the caller (orphan).
- * Acceptable for a PoC because the failure surface is tiny (loadJwtSecret
- * is already validated). To eliminate it cleanly we would generate the
- * jti client-side, sign first, then insert.
+ * The jti is generated up front and the JWT is signed *before* the insert,
+ * so a signing failure can no longer leave an orphan row behind.
  */
 export async function issuePat(input: IssuePatInput): Promise<IssuePatResult> {
   const expiresAt = new Date(
     Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000,
   );
-  const { data, error } = await input.supabase
-    .from('personal_access_tokens')
-    .insert({
-      user_id: input.userId,
-      name: input.name,
-      expires_at: expiresAt.toISOString(),
-    })
-    .select('id')
-    .single();
-  if (error || !data) {
-    throw error ?? new Error('failed to insert personal_access_tokens row');
-  }
+  const id = crypto.randomUUID();
   const token = await new SignJWT({})
     .setProtectedHeader({ alg: JWT_ALG })
     .setSubject(input.userId)
-    .setJti(data.id)
+    .setJti(id)
     .setIssuer(JWT_ISSUER)
     .setIssuedAt()
     .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
     .sign(loadJwtSecret());
-  return { token, id: data.id, expiresAt: expiresAt.toISOString() };
+  await input.db.insert(personalAccessTokens).values({
+    id,
+    userId: input.userId,
+    name: input.name,
+    expiresAt: expiresAt.toISOString(),
+  });
+  return { token, id, expiresAt: expiresAt.toISOString() };
 }
 
 function parseBearer(authHeader: string): string {
@@ -89,7 +83,7 @@ function parseBearer(authHeader: string): string {
  */
 export async function verifyPat(
   authHeader: string,
-  supabase: SupabaseClient,
+  db: Db,
 ): Promise<{ userId: string; tokenId: string }> {
   const jwt = parseBearer(authHeader);
   const { payload } = await jwtVerify(jwt, loadJwtSecret(), {
@@ -99,47 +93,47 @@ export async function verifyPat(
   if (typeof payload.sub !== 'string' || typeof payload.jti !== 'string') {
     throw new Error('PAT is missing sub or jti');
   }
-  const { data, error } = await supabase
-    .from('personal_access_tokens')
-    .select('id, user_id, expires_at')
-    .eq('id', payload.jti)
-    .eq('user_id', payload.sub)
-    .maybeSingle();
-  if (error) {
-    throw error;
-  }
-  if (!data) {
+  const row = await db
+    .select({
+      id: personalAccessTokens.id,
+      userId: personalAccessTokens.userId,
+      expiresAt: personalAccessTokens.expiresAt,
+    })
+    .from(personalAccessTokens)
+    .where(
+      and(
+        eq(personalAccessTokens.id, payload.jti),
+        eq(personalAccessTokens.userId, payload.sub),
+      ),
+    )
+    .get();
+  if (!row) {
     throw new Error('PAT has been revoked');
   }
-  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
+  if (row.expiresAt && new Date(row.expiresAt).getTime() < Date.now()) {
     throw new Error('PAT is expired');
   }
-  const { error: touchError } = await supabase
-    .from('personal_access_tokens')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', payload.jti);
-  if (touchError) {
+  try {
+    await db
+      .update(personalAccessTokens)
+      .set({ lastUsedAt: new Date().toISOString() })
+      .where(eq(personalAccessTokens.id, payload.jti));
+  } catch (touchError) {
     // The PAT is still valid for this request; surface the lost audit trail.
     console.warn('failed to update last_used_at for pat', payload.jti, touchError);
   }
-  return { userId: data.user_id, tokenId: data.id };
+  return { userId: row.userId, tokenId: row.id };
 }
 
 /**
  * Revokes a PAT by deleting its row. verifyPat fails on missing rows so
- * any outstanding JWTs become invalid immediately.
+ * any outstanding JWTs become invalid immediately. Returns whether a row
+ * owned by `userId` was actually deleted.
  */
-export async function revokePat(
-  id: string,
-  userId: string,
-  supabase: SupabaseClient,
-): Promise<void> {
-  const { error } = await supabase
-    .from('personal_access_tokens')
-    .delete()
-    .eq('id', id)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+export async function revokePat(id: string, userId: string, db: Db): Promise<boolean> {
+  const deleted = await db
+    .delete(personalAccessTokens)
+    .where(and(eq(personalAccessTokens.id, id), eq(personalAccessTokens.userId, userId)))
+    .returning({ id: personalAccessTokens.id });
+  return deleted.length > 0;
 }

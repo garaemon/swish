@@ -1,14 +1,14 @@
 # Runtime variables for `opennextjs-cloudflare preview` / `wrangler dev`
 # (local workerd). Copy to `.dev.vars` and fill in. Mirrors the keys in the
-# repo-root `.env.example`; values below match a fresh local Supabase stack.
+# repo-root `.env.example`.
 #
-# `next dev` reads `.env` instead — `.dev.vars` only applies to the workerd
-# preview path.
+# `next dev` reads `.env.local` instead — `.dev.vars` only applies to the
+# workerd preview path. The D1 database is a binding (wrangler.jsonc), not a
+# variable; run `pnpm --filter web db:migrate:local` once to create tables.
 
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:8787
 
-SUPABASE_SERVICE_ROLE_KEY=
 MASTER_KEY=
 JWT_SECRET=
+BETTER_AUTH_SECRET=
+SIGNUP_ALLOWED_EMAILS=

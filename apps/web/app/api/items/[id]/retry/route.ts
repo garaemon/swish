@@ -7,8 +7,10 @@
  */
 import { after } from 'next/server';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
+import { and, eq } from 'drizzle-orm';
+import { getDb } from '@/lib/db';
+import { items } from '@/lib/db/schema';
 import { runPipeline } from '@/lib/pipeline/run';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
 
 export const runtime = 'nodejs';
 
@@ -21,21 +23,17 @@ export async function POST(request: Request, context: Context): Promise<Response
     if (!id) {
       return Response.json({ error: 'missing id' }, { status: 400 });
     }
-    const supabase = await getSupabaseForUser(user);
+    const db = await getDb();
 
-    // Filter by both id and user_id so the service-role PAT path cannot
-    // accidentally touch another user's item. Returning 404 (rather than
-    // 403) for cross-tenant access avoids leaking that the id exists.
-    const { data: updated, error: updateError } = await supabase
-      .from('items')
-      .update({ process_status: 'pending', error_message: null })
-      .eq('id', id)
-      .eq('user_id', user.userId)
-      .select('id')
-      .maybeSingle();
-    if (updateError) {
-      return Response.json({ error: updateError.message }, { status: 500 });
-    }
+    // Filter by both id and user_id: D1 has no row-level security, so this
+    // is what keeps the request from touching another user's item.
+    // Returning 404 (rather than 403) for cross-tenant access avoids leaking
+    // that the id exists.
+    const [updated] = await db
+      .update(items)
+      .set({ processStatus: 'pending', errorMessage: null })
+      .where(and(eq(items.id, id), eq(items.userId, user.userId)))
+      .returning({ id: items.id });
     if (!updated) {
       return Response.json({ error: 'not_found' }, { status: 404 });
     }

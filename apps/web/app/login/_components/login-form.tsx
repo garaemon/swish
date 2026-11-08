@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { authClient } from '@/lib/auth/client';
 
 export function LoginForm(): React.JSX.Element {
   const router = useRouter();
@@ -16,19 +16,18 @@ export function LoginForm(): React.JSX.Element {
     setError(null);
     setSubmitting(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await authClient.signIn.email({
         email,
         password,
       });
       if (signInError) {
-        setError(signInError.message);
+        setError(signInError.message ?? 'sign-in failed');
         return;
       }
       router.replace('/dashboard');
       router.refresh();
     } catch (cause) {
-      // signInWithPassword normally returns errors via `signInError`, but
+      // signIn.email normally returns errors via `signInError`, but
       // a network drop or runtime fault would otherwise escape to the error
       // boundary and freeze the page. Surface the message inline instead.
       setError(cause instanceof Error ? cause.message : 'unexpected sign-in error');

@@ -2,8 +2,8 @@
  * POST /api/bookmarks { url, title? }
  * Saves a URL and schedules the scrape+summarize pipeline. Returns 200
  * with { id, status: 'pending' } within milliseconds; the pipeline runs
- * after the response is flushed via Next.js after(). 23505 (duplicate URL
- * for this user) surfaces as 409 { error: 'already_in_inbox' }.
+ * after the response is flushed via Next.js after(). A UNIQUE violation
+ * (duplicate URL for this user) surfaces as 409 { error: 'already_in_inbox' }.
  *
  * OPTIONS handles the bookmarklet preflight with CORS headers.
  *
@@ -11,9 +11,11 @@
  */
 import { after } from 'next/server';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
+import { getDb } from '@/lib/db';
+import { isUniqueViolation } from '@/lib/db/errors';
+import { items } from '@/lib/db/schema';
 import { corsHeaders, handleOptions } from '@/lib/http/cors';
 import { runPipeline } from '@/lib/pipeline/run';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
 import { BookmarkInputSchema } from '@/lib/validation/schemas';
 
 export const runtime = 'nodejs';
@@ -34,31 +36,32 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400, headers: cors },
       );
     }
-    const supabase = await getSupabaseForUser(user);
-    const { data, error } = await supabase
-      .from('items')
-      .insert({
-        user_id: user.userId,
-        url: parsed.data.url,
-        title: parsed.data.title ?? null,
-        source_type: 'bookmark',
-      })
-      .select('id')
-      .single();
-    if (error || !data) {
-      // 23505 = Postgres unique_violation. items has UNIQUE(user_id, url).
-      if (error?.code === '23505') {
+    const db = await getDb();
+    let itemId: string;
+    try {
+      const [inserted] = await db
+        .insert(items)
+        .values({
+          userId: user.userId,
+          url: parsed.data.url,
+          title: parsed.data.title ?? null,
+          sourceType: 'bookmark',
+        })
+        .returning({ id: items.id });
+      itemId = inserted.id;
+    } catch (error) {
+      // items has UNIQUE(user_id, url).
+      if (isUniqueViolation(error)) {
         return Response.json(
           { error: 'already_in_inbox' },
           { status: 409, headers: cors },
         );
       }
       return Response.json(
-        { error: error?.message ?? 'failed to insert item' },
+        { error: error instanceof Error ? error.message : 'failed to insert item' },
         { status: 500, headers: cors },
       );
     }
-    const itemId = data.id;
     // runPipeline itself catches and marks the item failed via markFailed.
     // The outer try/catch here only fires when markFailed itself throws
     // (e.g. DB unreachable); in that rare case the item stays in

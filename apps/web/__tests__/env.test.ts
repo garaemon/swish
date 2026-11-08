@@ -2,19 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getPublicEnv, getServerEnv, resetServerEnvCache } from '@/lib/env';
 
 const REQUIRED_ENV_KEYS = [
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
   'MASTER_KEY',
   'JWT_SECRET',
+  'BETTER_AUTH_SECRET',
+  'SIGNUP_ALLOWED_EMAILS',
   'NEXT_PUBLIC_APP_URL',
   'GEMINI_API_ENDPOINT',
 ] as const;
 
 function setValidEnv(): void {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://127.0.0.1:54321';
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'anon-key';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key';
+  process.env.BETTER_AUTH_SECRET = 'a-very-long-better-auth-secret-of-32-chars';
   process.env.MASTER_KEY = 'cGxhY2Vob2xkZXJfMzJfYnl0ZV9rZXlfdmFsdWVfMTIz';
   process.env.JWT_SECRET = 'a-very-long-jwt-secret-of-at-least-32-chars';
   process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
@@ -42,7 +39,7 @@ describe('getServerEnv', () => {
   it('returns parsed env when all variables are set', () => {
     setValidEnv();
     const env = getServerEnv();
-    expect(env.NEXT_PUBLIC_SUPABASE_URL).toBe('http://127.0.0.1:54321');
+    expect(env.NEXT_PUBLIC_APP_URL).toBe('http://localhost:3000');
     expect(env.MASTER_KEY).toBeTruthy();
   });
 
@@ -60,11 +57,18 @@ describe('getServerEnv', () => {
     expect(() => getServerEnv()).toThrow(/Invalid server environment:[\s\S]*JWT_SECRET/);
   });
 
-  it('throws listing NEXT_PUBLIC_SUPABASE_URL when malformed', () => {
+  it('throws listing NEXT_PUBLIC_APP_URL when malformed', () => {
     setValidEnv();
-    process.env.NEXT_PUBLIC_SUPABASE_URL = 'not-a-url';
+    process.env.NEXT_PUBLIC_APP_URL = 'not-a-url';
     resetServerEnvCache();
-    expect(() => getServerEnv()).toThrow(/Invalid server environment:[\s\S]*NEXT_PUBLIC_SUPABASE_URL/);
+    expect(() => getServerEnv()).toThrow(/Invalid server environment:[\s\S]*NEXT_PUBLIC_APP_URL/);
+  });
+
+  it('throws listing BETTER_AUTH_SECRET when too short', () => {
+    setValidEnv();
+    process.env.BETTER_AUTH_SECRET = 'short';
+    resetServerEnvCache();
+    expect(() => getServerEnv()).toThrow(/Invalid server environment:[\s\S]*BETTER_AUTH_SECRET/);
   });
 
   it('accepts optional GEMINI_API_ENDPOINT when present and a URL', () => {
@@ -92,15 +96,13 @@ describe('getPublicEnv', () => {
     setValidEnv();
     const env = getPublicEnv();
     expect(env).toEqual({
-      NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:54321',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon-key',
       NEXT_PUBLIC_APP_URL: 'http://localhost:3000',
     });
   });
 
   it('throws "Invalid public environment" when a NEXT_PUBLIC_* is missing', () => {
     setValidEnv();
-    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
-    expect(() => getPublicEnv()).toThrow(/^Invalid public environment:[\s\S]*NEXT_PUBLIC_SUPABASE_URL/);
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    expect(() => getPublicEnv()).toThrow(/^Invalid public environment:[\s\S]*NEXT_PUBLIC_APP_URL/);
   });
 });

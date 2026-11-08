@@ -29,6 +29,8 @@ jobs:
 
       - run: pnpm lint
 
+      # Includes the DB / auth / API route tests, which run against an
+      # in-memory D1 (Miniflare) with all migrations applied.
       - run: pnpm test
 
       # next build evaluates page modules; getServerEnv() is lazy, but the
@@ -37,54 +39,8 @@ jobs:
       # build does not fail for reasons unrelated to the change under test.
       - name: pnpm build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-          SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
           MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
           JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
+          BETTER_AUTH_SECRET: ci-better-auth-secret-at-least-32-chars
           NEXT_PUBLIC_APP_URL: http://localhost:3000
         run: pnpm build
-
-  integration:
-    name: supabase integration tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.1.2
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: supabase start
-        run: supabase start
-
-      - name: export supabase env
-        run: |
-          eval "$(supabase status -o env)"
-          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
-
-      - name: integration tests
-        env:
-          # MASTER_KEY must decode to exactly 32 bytes (AES-256). The all-zero
-          # placeholder satisfies the runtime check without exposing a real key.
-          MASTER_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-          JWT_SECRET: ci-jwt-secret-at-least-thirty-two-characters
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
-        run: pnpm --filter web test:integration
-
-      - name: supabase stop
-        if: always()
-        run: supabase stop

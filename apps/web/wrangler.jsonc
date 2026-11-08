@@ -10,5 +10,17 @@
   },
   "ai": {
     "binding": "AI"
-  }
+  },
+  // Primary data store. Create the database once with
+  // `wrangler d1 create swish` and paste the printed id below. Local dev
+  // (`next dev`, `preview`, `db:migrate:local`) only needs the binding name,
+  // so the placeholder id works until the first remote deploy.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "swish",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
 }

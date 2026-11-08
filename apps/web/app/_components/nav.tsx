@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SignOutButton } from './sign-out-button';
 
 /**
  * Shared top-of-page nav so every signed-in page links back to the inbox
@@ -22,6 +23,7 @@ export function Nav(): React.JSX.Element {
           <Link href="/settings" className="hover:underline">
             Settings
           </Link>
+          <SignOutButton />
         </div>
       </div>
     </nav>

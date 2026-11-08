@@ -1,6 +1,6 @@
+import { getDb } from '@/lib/db';
 import { verifyPat } from './pat';
 import { getSessionUser } from './session';
-import { createSupabaseServiceClient } from '@/lib/supabase/service';
 
 export type AuthedUser = {
   userId: string
@@ -25,10 +25,13 @@ export class UnauthorizedError extends Error {
 /**
  * Authenticates an incoming request via either:
  *   1. an `Authorization: Bearer <PAT>` header (CLI / bookmarklet / external),
- *   2. or the Supabase cookie session (Web UI).
+ *   2. or the Better Auth cookie session (Web UI).
  *
  * Bearer is preferred so that automated callers do not depend on cookies.
  * Intended as the auth gate for protected /api/* route handlers.
+ *
+ * The returned userId is the only tenancy boundary: D1 has no row-level
+ * security, so every query downstream must filter by it.
  *
  * TODO (CSRF): cookie-authenticated state-changing API routes (PUT
  * /api/items/[id]/read, POST /api/items/[id]/retry, PUT /api/settings,
@@ -42,14 +45,14 @@ export async function requireUser(req: Request): Promise<AuthedUser> {
   const authHeader = req.headers.get('authorization');
   if (authHeader) {
     try {
-      const supabase = createSupabaseServiceClient();
-      const { userId } = await verifyPat(authHeader, supabase);
+      const db = await getDb();
+      const { userId } = await verifyPat(authHeader, db);
       return { userId, via: 'pat' };
     } catch {
       throw new UnauthorizedError('invalid pat');
     }
   }
-  const user = await getSessionUser();
+  const user = await getSessionUser(req.headers);
   if (!user) {
     throw new UnauthorizedError();
   }

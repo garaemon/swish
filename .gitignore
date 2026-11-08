@@ -36,11 +36,6 @@ pnpm-debug.log*
 \#*\#
 .\#*
 
-# Supabase local
-supabase/.branches/
-supabase/.temp/
-supabase/seed_local.sql
-
 # Playwright MCP scratch
 .playwright-mcp/
 

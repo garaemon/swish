@@ -1,51 +1,39 @@
 'use server';
 
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { requireSessionUserId } from '@/lib/auth/session';
+import { getDb } from '@/lib/db';
+import { isUniqueViolation } from '@/lib/db/errors';
+import { items } from '@/lib/db/schema';
 import { runPipeline } from '@/lib/pipeline/run';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { BookmarkInputSchema } from '@/lib/validation/schemas';
 
 export async function markRead(itemId: string): Promise<void> {
   const userId = await requireSessionUserId();
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
-    .from('items')
-    .update({ is_read: true })
-    .eq('id', itemId)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+  const db = await getDb();
+  await db
+    .update(items)
+    .set({ isRead: true })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   revalidatePath('/dashboard');
 }
 
 export async function deleteItem(itemId: string): Promise<void> {
   const userId = await requireSessionUserId();
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
-    .from('items')
-    .delete()
-    .eq('id', itemId)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+  const db = await getDb();
+  await db.delete(items).where(and(eq(items.id, itemId), eq(items.userId, userId)));
   revalidatePath('/dashboard');
 }
 
 export async function retryItem(itemId: string): Promise<void> {
   const userId = await requireSessionUserId();
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
-    .from('items')
-    .update({ process_status: 'pending', error_message: null })
-    .eq('id', itemId)
-    .eq('user_id', userId);
-  if (error) {
-    throw error;
-  }
+  const db = await getDb();
+  await db
+    .update(items)
+    .set({ processStatus: 'pending', errorMessage: null })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   after(async () => {
     try {
       await runPipeline({ itemId, userId });
@@ -66,23 +54,20 @@ export async function addBookmark(rawUrl: string): Promise<AddBookmarkResult> {
   if (!parsed.success) {
     return { ok: false, error: 'invalid url' };
   }
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('items')
-    .insert({
-      user_id: userId,
-      url: parsed.data.url,
-      source_type: 'bookmark',
-    })
-    .select('id')
-    .single();
-  if (error || !data) {
-    if (error?.code === '23505') {
+  const db = await getDb();
+  let itemId: string;
+  try {
+    const [inserted] = await db
+      .insert(items)
+      .values({ userId, url: parsed.data.url, sourceType: 'bookmark' })
+      .returning({ id: items.id });
+    itemId = inserted.id;
+  } catch (error) {
+    if (isUniqueViolation(error)) {
       return { ok: false, error: 'already in inbox' };
     }
-    return { ok: false, error: error?.message ?? 'failed to insert' };
+    return { ok: false, error: error instanceof Error ? error.message : 'failed to insert' };
   }
-  const itemId = data.id;
   after(async () => {
     try {
       await runPipeline({ itemId, userId });

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { desc, eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import {
   DEFAULT_AI_MODEL,
@@ -7,10 +8,11 @@ import {
 } from '@swish/shared/defaults';
 import { Nav } from '@/app/_components/nav';
 import { getSessionUser } from '@/lib/auth/session';
+import { getDb } from '@/lib/db';
+import { personalAccessTokens, userSettings } from '@/lib/db/schema';
 import { getServerEnv } from '@/lib/env';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { AiSettingsForm } from './_components/ai-settings-form';
-import { TokenList, type TokenRow } from './_components/token-list';
+import { TokenList } from './_components/token-list';
 
 export const metadata: Metadata = {
   title: 'Settings — Swish',
@@ -30,43 +32,39 @@ export default async function SettingsPage(): Promise<React.JSX.Element> {
     redirect('/login');
   }
 
-  const supabase = await createSupabaseServerClient();
-  const [settingsRow, tokenRows] = await Promise.all([
-    supabase
-      .from('user_settings')
-      .select('ai_provider, ai_model, ai_summary_language, ai_custom_prompt, encrypted_api_key')
-      .eq('user_id', user.userId)
-      .maybeSingle(),
-    supabase
-      .from('personal_access_tokens')
-      .select('id, name, created_at, expires_at, last_used_at')
-      .eq('user_id', user.userId)
-      .order('created_at', { ascending: false }),
+  const db = await getDb();
+  const [settingsRow, tokens] = await Promise.all([
+    db
+      .select({
+        aiProvider: userSettings.aiProvider,
+        aiModel: userSettings.aiModel,
+        aiSummaryLanguage: userSettings.aiSummaryLanguage,
+        aiCustomPrompt: userSettings.aiCustomPrompt,
+        encryptedApiKey: userSettings.encryptedApiKey,
+      })
+      .from(userSettings)
+      .where(eq(userSettings.userId, user.userId))
+      .get(),
+    db
+      .select({
+        id: personalAccessTokens.id,
+        name: personalAccessTokens.name,
+        createdAt: personalAccessTokens.createdAt,
+        expiresAt: personalAccessTokens.expiresAt,
+        lastUsedAt: personalAccessTokens.lastUsedAt,
+      })
+      .from(personalAccessTokens)
+      .where(eq(personalAccessTokens.userId, user.userId))
+      .orderBy(desc(personalAccessTokens.createdAt)),
   ]);
 
   const settings: LoadedSettings = {
-    aiProvider: settingsRow.data?.ai_provider ?? DEFAULT_AI_PROVIDER,
-    aiModel: settingsRow.data?.ai_model ?? DEFAULT_AI_MODEL,
-    aiSummaryLanguage:
-      settingsRow.data?.ai_summary_language ?? DEFAULT_AI_SUMMARY_LANGUAGE,
-    aiCustomPrompt: settingsRow.data?.ai_custom_prompt ?? null,
-    hasApiKey: Boolean(settingsRow.data?.encrypted_api_key),
+    aiProvider: settingsRow?.aiProvider ?? DEFAULT_AI_PROVIDER,
+    aiModel: settingsRow?.aiModel ?? DEFAULT_AI_MODEL,
+    aiSummaryLanguage: settingsRow?.aiSummaryLanguage ?? DEFAULT_AI_SUMMARY_LANGUAGE,
+    aiCustomPrompt: settingsRow?.aiCustomPrompt ?? null,
+    hasApiKey: Boolean(settingsRow?.encryptedApiKey),
   };
-
-  type TokenSelectRow = {
-    id: string
-    name: string
-    created_at: string
-    expires_at: string | null
-    last_used_at: string | null
-  }
-  const tokens: TokenRow[] = ((tokenRows.data ?? []) as TokenSelectRow[]).map((row) => ({
-    id: row.id,
-    name: row.name,
-    createdAt: row.created_at,
-    expiresAt: row.expires_at,
-    lastUsedAt: row.last_used_at,
-  }));
 
   const apiUrl = getServerEnv().NEXT_PUBLIC_APP_URL;
 

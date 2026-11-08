@@ -7,8 +7,10 @@
  * contract.
  */
 import type { ItemSummaryDto } from '@swish/shared';
+import { and, desc, eq } from 'drizzle-orm';
 import { UnauthorizedError, requireUser } from '@/lib/auth/guard';
-import { getSupabaseForUser } from '@/lib/supabase/client-for-user';
+import { getDb } from '@/lib/db';
+import { items } from '@/lib/db/schema';
 
 export const runtime = 'nodejs';
 
@@ -41,11 +43,11 @@ function parseIsRead(value: string | null): boolean | null {
 // (pending, processing, completed, failed). The fallback only fires if a
 // future migration loosens that constraint; warn loudly so the drift is
 // visible.
-function asProcessStatus(value: string | null): ItemSummaryDto['processStatus'] {
+function asProcessStatus(value: string): ItemSummaryDto['processStatus'] {
   if (value === 'processing' || value === 'completed' || value === 'failed') {
     return value;
   }
-  if (value !== null && value !== 'pending') {
+  if (value !== 'pending') {
     console.warn(`Unexpected items.process_status value: ${value}`);
   }
   return 'pending';
@@ -69,39 +71,42 @@ export async function GET(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const limit = parseLimit(url.searchParams.get('limit'));
     const isRead = parseIsRead(url.searchParams.get('is_read'));
-    const supabase = await getSupabaseForUser(user);
-    let query = supabase
-      .from('items')
-      .select(
-        'id, url, title, summary_short, summary_long, process_status, error_message, is_read, source_type, created_at',
-      )
-      .eq('user_id', user.userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const db = await getDb();
+    const conditions = [eq(items.userId, user.userId)];
     if (isRead !== null) {
-      query = query.eq('is_read', isRead);
+      conditions.push(eq(items.isRead, isRead));
     }
-    const { data, error } = await query;
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
+    let rows;
+    try {
+      rows = await db
+        .select({
+          id: items.id,
+          url: items.url,
+          title: items.title,
+          summaryShort: items.summaryShort,
+          summaryLong: items.summaryLong,
+          processStatus: items.processStatus,
+          errorMessage: items.errorMessage,
+          isRead: items.isRead,
+          sourceType: items.sourceType,
+          createdAt: items.createdAt,
+        })
+        .from(items)
+        .where(and(...conditions))
+        .orderBy(desc(items.createdAt))
+        .limit(limit);
+    } catch (error) {
+      return Response.json(
+        { error: error instanceof Error ? error.message : 'failed to load items' },
+        { status: 500 },
+      );
     }
-    const items: ItemSummaryDto[] = (data ?? []).map((row) => ({
-      id: row.id,
-      url: row.url,
-      title: row.title,
-      summaryShort: row.summary_short,
-      summaryLong: row.summary_long,
-      // DB default seeds 'pending' but the generated type is nullable.
-      processStatus: asProcessStatus(row.process_status),
-      errorMessage: row.error_message,
-      isRead: row.is_read ?? false,
-      sourceType: asSourceType(row.source_type),
-      // DB default `now()` guarantees a value; the generated type only
-      // marks it nullable. Cast rather than ?? '' so a future schema
-      // change surfaces as a runtime error instead of a junk DTO.
-      createdAt: row.created_at as string,
+    const body: ItemSummaryDto[] = rows.map((row) => ({
+      ...row,
+      processStatus: asProcessStatus(row.processStatus),
+      sourceType: asSourceType(row.sourceType),
     }));
-    return Response.json({ items });
+    return Response.json({ items: body });
   } catch (err) {
     if (err instanceof UnauthorizedError) {
       return err.response;

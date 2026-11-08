@@ -11,20 +11,23 @@
 import { z } from 'zod';
 
 const ServerEnvSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   MASTER_KEY: z
     .string()
     .min(1, 'MASTER_KEY must be a base64-encoded 32-byte value'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  // Signs and encrypts Better Auth session cookies.
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, 'BETTER_AUTH_SECRET must be at least 32 characters'),
+  // Comma-separated list of emails allowed to sign up, or `*` for anyone.
+  // Unset / empty disables sign-up entirely (the usual production setting
+  // once the owner account exists).
+  SIGNUP_ALLOWED_EMAILS: z.string().optional(),
   NEXT_PUBLIC_APP_URL: z.url(),
   GEMINI_API_ENDPOINT: z.url().optional(),
 });
 
 const PublicEnvSchema = ServerEnvSchema.pick({
-  NEXT_PUBLIC_SUPABASE_URL: true,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: true,
   NEXT_PUBLIC_APP_URL: true,
 });
 
@@ -60,8 +63,6 @@ export function getServerEnv(): ServerEnv {
  */
 export function getPublicEnv(): PublicEnv {
   const parsed = PublicEnvSchema.safeParse({
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   });
   if (!parsed.success) {

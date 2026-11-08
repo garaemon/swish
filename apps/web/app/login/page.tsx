@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth/session';
 import { LoginForm } from './_components/login-form';
@@ -6,6 +7,8 @@ import { LoginForm } from './_components/login-form';
 export const metadata: Metadata = {
   title: 'Sign in — Swish',
 };
+
+export const dynamic = 'force-dynamic';
 
 export default async function LoginPage(): Promise<React.JSX.Element> {
   const user = await getSessionUser();
@@ -18,9 +21,15 @@ export default async function LoginPage(): Promise<React.JSX.Element> {
       <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <h1 className="mb-1 text-2xl font-semibold tracking-tight">Sign in to Swish</h1>
         <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-          Email and password on the local Supabase stack.
+          Sign in with your email and password.
         </p>
         <LoginForm />
+        <p className="mt-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          No account yet?{' '}
+          <Link href="/signup" className="underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </main>
   );
