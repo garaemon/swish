@@ -120,6 +120,41 @@ pnpm --filter web db:migrate:remote
 `wrangler d1 migrations list DB --remote` lists pending migrations without
 applying them.
 
+### Migrating data from Supabase
+
+`apps/web/scripts/supabase-to-d1` exports an existing Supabase database
+(auth users, settings, PATs, feeds, items, tags) into a SQL file for D1.
+
+```bash
+# 1. Export. Use the Postgres connection string from the Supabase dashboard
+#    (Connect → "Session pooler" or "Direct connection").
+pnpm --filter web db:export-supabase --database-url "postgresql://postgres.<ref>:<password>@<host>:5432/postgres" --out supabase-export.sql
+
+# 2. Create the tables in an EMPTY D1 database, then load the data.
+pnpm --filter web db:migrate:remote
+cd apps/web && mise exec -- wrangler d1 execute DB --remote --file ../../supabase-export.sql
+
+# 3. Delete the export: it contains password hashes and encrypted API keys.
+rm ../../supabase-export.sql
+```
+
+What carries over:
+
+- **Passwords**: Supabase stores bcrypt hashes; Better Auth is configured to
+  verify them (`lib/auth/password.ts`), so users sign in with their existing
+  passwords. Users without a password (OAuth / magic link) are imported
+  without a credential and reported as warnings.
+- **Ids**: user, item, tag and token ids are kept. Set `JWT_SECRET` and
+  `MASTER_KEY` to the same values as before so existing PATs (CLI,
+  bookmarklet, iOS Shortcut) and the stored Gemini API keys keep working.
+- **Items stuck in `processing`** become `failed` so the dashboard offers a
+  retry. Soft-deleted users and rows owned by them are skipped.
+- Article text larger than D1's 100 KB per-statement limit is written in
+  chunks automatically.
+
+Run the import once, against a database that has only the migrations
+applied: the file uses plain `INSERT`s and fails on existing rows.
+
 ### Build and deploy
 
 Build, preview locally on workerd, and deploy:

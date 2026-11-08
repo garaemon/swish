@@ -48,3 +48,6 @@ next-env.d.ts
 .wrangler/
 .dev.vars
 cloudflare-env.d.ts
+
+# Supabase -> D1 export (contains password hashes / encrypted keys)
+supabase-export*.sql

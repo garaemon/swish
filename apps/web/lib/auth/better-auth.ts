@@ -6,6 +6,7 @@ import { nextCookies } from 'better-auth/next-js';
 import { getDb, type Db } from '@/lib/db';
 import * as schema from '@/lib/db/schema';
 import { getServerEnv } from '@/lib/env';
+import { passwordConfig } from './password';
 
 /**
  * Parses SIGNUP_ALLOWED_EMAILS into a predicate. `*` allows anyone; an empty
@@ -43,6 +44,9 @@ export function createAuth(db: Db) {
     emailAndPassword: {
       enabled: true,
       disableSignUp: signupDisabled,
+      // scrypt for new passwords; also verifies bcrypt hashes imported from
+      // Supabase Auth.
+      password: passwordConfig,
     },
     databaseHooks: {
       user: {

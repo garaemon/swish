@@ -12,6 +12,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:export-supabase": "tsx scripts/supabase-to-d1/main.ts",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -19,6 +20,7 @@
   "dependencies": {
     "@opennextjs/cloudflare": "^1.19.11",
     "@swish/shared": "workspace:*",
+    "bcryptjs": "^3.0.3",
     "better-auth": "^1.7.18",
     "drizzle-orm": "^0.45.4",
     "jose": "^6.2.3",
@@ -32,6 +34,7 @@
     "@cloudflare/workers-types": "^5.20261107.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/ui": "^4.1.6",
@@ -39,7 +42,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "miniflare": "^4.20260730.0",
+    "pg": "^8.23.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^4.1.6",
     "wrangler": "^4.103.0"
